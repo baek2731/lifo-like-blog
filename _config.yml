@@ -1,0 +1,46 @@
+# ==========================================
+# 🌐 LIFO-LIKE 글로벌 영문 블로그 코어 세팅
+# ==========================================
+title: "LIFO-LIKE Tech & Tools"
+description: "Global technical guides, gaming strategies, and digital utility toolkits."
+url: "https://blog.lifo-like.com"
+baseurl: ""
+
+# 🌎 구글 글로벌 인덱싱을 위한 영문 표준화 선언
+locale: "en-US"
+
+# ==========================================
+# 🏗️ 테마 엔진 구성 (Minimal Mistakes Remote)
+# ==========================================
+theme: "minimal-mistakes-jekyll"
+remote_theme: "mmistakes/minimal-mistakes@4.24.0"
+minimal_mistakes_skin: "default"
+
+# ==========================================
+# 🎯 구글 SEO 및 사이트맵 플러그인 활성화
+# ==========================================
+plugins:
+  - jekyll-seo-tag
+  - jekyll-sitemap
+  - jekyll-include-cache
+
+# ==========================================
+# 🔗 구글 크롤러 저품질 우회용 URL 영구 주소 설정
+# ==========================================
+permalink: /:categories/:title/
+paginate: 5
+timezone: "Asia/Seoul"
+
+# ==========================================
+# 📜 오픈소스 MIT 라이선스 및 저작권 준수 고지
+# ==========================================
+owner:
+  name: "LIFO-LIKE Admin"
+  avatar: null
+  bio: "Automated Global Tech & Tools Content Platform"
+
+credit: true
+footer:
+  links:
+    - label: "LIFO-LIKE Main"
+      url: "https://lifo-like.com"
