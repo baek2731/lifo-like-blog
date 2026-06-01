@@ -1,0 +1,8 @@
+User-agent: *
+Allow: /
+
+Disallow: /assets/js/
+Disallow: /auth/
+Disallow: /vendor/
+
+Sitemap: https://blog.lifo-like.com/sitemap.xml
