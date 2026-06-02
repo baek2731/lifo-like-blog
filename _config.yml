@@ -12,7 +12,6 @@ locale: "en-US"
 # ==========================================
 # 🏗️ 테마 엔진 구성 (Minimal Mistakes Remote)
 # ==========================================
-theme: "minimal-mistakes-jekyll"
 remote_theme: "mmistakes/minimal-mistakes@4.24.0"
 minimal_mistakes_skin: "default"
 
