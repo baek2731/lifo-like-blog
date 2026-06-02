@@ -5,39 +5,85 @@ title: "LIFO-LIKE Tech & Tools"
 description: "Global technical guides, gaming strategies, and digital utility toolkits."
 url: "https://blog.lifo-like.com"
 baseurl: ""
-
-# 🌎 구글 글로벌 인덱싱을 위한 영문 표준화 선언
 locale: "en-US"
 
 # ==========================================
-# 🏗️ 테마 엔진 구성 (Minimal Mistakes Remote)
+# 🏗️ 테마 엔진 구성
 # ==========================================
 remote_theme: "mmistakes/minimal-mistakes@4.24.0"
-minimal_mistakes_skin: "default"
+minimal_mistakes_skin: "dark"
 
 # ==========================================
-# 🎯 구글 SEO 및 사이트맵 플러그인 활성화
+# 🎯 SEO 및 플러그인
 # ==========================================
 plugins:
   - jekyll-seo-tag
   - jekyll-sitemap
   - jekyll-include-cache
+  - jekyll-paginate
 
 # ==========================================
-# 🔗 구글 크롤러 저품질 우회용 URL 영구 주소 설정
+# 🔗 URL 구조
 # ==========================================
 permalink: /:categories/:title/
 paginate: 5
+paginate_path: "/page:num/"
 timezone: "Asia/Seoul"
 
 # ==========================================
-# 📜 오픈소스 MIT 라이선스 및 저작권 준수 고지
+# 👤 저자 정보 (사이드바용)
+# ==========================================
+author:
+  name: "LIFO-LIKE"
+  bio: "Global Tech & Gaming Trends, Analyzed."
+  location: "Global"
+  links:
+    - label: "Main Site"
+      icon: "fas fa-fw fa-link"
+      url: "https://lifo-like.com"
+
+# ==========================================
+# 📌 기본 설정
+# ==========================================
+defaults:
+  - scope:
+      path: ""
+      type: posts
+    values:
+      layout: single
+      author_profile: true
+      read_time: true
+      share: true
+      related: true
+      show_date: true
+  - scope:
+      path: "_pages"
+      type: pages
+    values:
+      layout: single
+      author_profile: false
+
+# ==========================================
+# 🗂️ 카테고리 및 태그
+# ==========================================
+category_archive:
+  type: liquid
+  path: /categories/
+tag_archive:
+  type: liquid
+  path: /tags/
+
+# ==========================================
+# 🔍 검색 기능
+# ==========================================
+search: true
+
+# ==========================================
+# 📜 기타
 # ==========================================
 owner:
   name: "LIFO-LIKE Admin"
-  avatar: null
   bio: "Automated Global Tech & Tools Content Platform"
-
 credit: true
 footer:
   links:
