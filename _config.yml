@@ -6,13 +6,11 @@ description: "Global technical guides, gaming strategies, and digital utility to
 url: "https://blog.lifo-like.com"
 baseurl: ""
 locale: "en-US"
-
 # ==========================================
 # 🏗️ 테마 엔진 구성
 # ==========================================
 remote_theme: "mmistakes/minimal-mistakes@4.24.0"
 minimal_mistakes_skin: "dark"
-
 # ==========================================
 # 🎯 SEO 및 플러그인
 # ==========================================
@@ -21,7 +19,6 @@ plugins:
   - jekyll-sitemap
   - jekyll-include-cache
   - jekyll-paginate
-
 # ==========================================
 # 🔗 URL 구조
 # ==========================================
@@ -29,7 +26,6 @@ permalink: /:categories/:title/
 paginate: 5
 paginate_path: "/page:num/"
 timezone: "Asia/Seoul"
-
 # ==========================================
 # 👤 저자 정보 (사이드바용)
 # ==========================================
@@ -37,11 +33,6 @@ author:
   name: "LIFO-LIKE"
   bio: "Global Tech & Gaming Trends, Analyzed."
   location: "Global"
-  links:
-    - label: "Main Site"
-      icon: "fas fa-fw fa-link"
-      url: "https://lifo-like.com"
-
 # ==========================================
 # 📌 기본 설정
 # ==========================================
@@ -62,7 +53,6 @@ defaults:
     values:
       layout: single
       author_profile: false
-
 # ==========================================
 # 🗂️ 카테고리 및 태그
 # ==========================================
@@ -72,20 +62,7 @@ category_archive:
 tag_archive:
   type: liquid
   path: /tags/
-
 # ==========================================
 # 🔍 검색 기능
 # ==========================================
 search: false
-
-# ==========================================
-# 📜 기타
-# ==========================================
-owner:
-  name: "LIFO-LIKE Admin"
-  bio: "Automated Global Tech & Tools Content Platform"
-credit: true
-footer:
-  links:
-    - label: "LIFO-LIKE Main"
-      url: "https://lifo-like.com"
