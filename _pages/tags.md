@@ -1,7 +1,7 @@
 ---
 title: "Tags"
 permalink: /tags/
-layout: archive
+layout: single
 author_profile: false
 ---
 
