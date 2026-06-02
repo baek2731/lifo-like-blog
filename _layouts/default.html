@@ -1,0 +1,50 @@
+---
+layout: compress
+---
+
+<!doctype html>
+<html lang="{{ site.locale | slice: 0, 2 }}" class="no-js">
+  <head>
+    {% include head.html %}
+    {% include head/custom.html %}
+  </head>
+
+  <body class="layout--{{ page.layout | default: layout.layout | default: 'default' }}{% if page.classes %} {{ page.classes | join: ' ' }}{% endif %}">
+    {% include browser-upgrade.html %}
+    {% include skip-links.html %}
+
+    <div class="masthead">
+      <div class="masthead__inner-wrap">
+        <div class="masthead__menu">
+          <nav id="site-nav" class="greedy-nav">
+            <a class="site-title" href="{{ '/' | relative_url }}">{{ site.title }}</a>
+            <ul class="visible-links"></ul>
+            <button class="greedy-nav__toggle hidden" type="button">
+              <span class="visually-hidden">{{ site.data.ui_text[site.locale].menu_toggle_label | default: "Toggle menu" }}</span>
+              <div class="navicon"></div>
+            </button>
+          </nav>
+        </div>
+      </div>
+    </div>
+
+    <div class="initial-content">
+      {{ content }}
+    </div>
+
+    {% if site.search == true %}
+      <div class="search-content">
+        {% include search-content.html %}
+      </div>
+    {% endif %}
+
+    <div id="footer" class="page__footer">
+      <footer>
+        {% include footer/custom.html %}
+        {% include footer.html %}
+      </footer>
+    </div>
+
+    {% include scripts.html %}
+  </body>
+</html>
