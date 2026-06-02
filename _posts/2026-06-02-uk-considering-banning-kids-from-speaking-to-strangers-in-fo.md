@@ -6,7 +6,7 @@ categories: [gaming]
 tags: [gaming, tech, trending]
 excerpt: "The UK government is officially trying to kill online gaming as we know it for kids, and anyone with half a brain can see this is a disaster waiting to ..."
 header:
-  image: "https://images.unsplash.com/photo-tF9S8021-Jk?w=1080&q=80"
+  image: "https://images.unsplash.com/photo-1569006819710-eba8e9273c42?w=1080&q=80"
   caption: "Photo by Tobias on Unsplash"
 author_profile: false
 read_time: true
