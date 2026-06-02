@@ -22,7 +22,7 @@ plugins:
 # ==========================================
 # 🔗 URL 구조
 # ==========================================
-permalink: /:year/:month/:day/:title/
+permalink: /:categories/:title/
 paginate: 5
 paginate_path: "/page:num/"
 timezone: "Asia/Seoul"
