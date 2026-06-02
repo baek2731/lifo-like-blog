@@ -12,6 +12,7 @@ plugins:
   - jekyll-sitemap
   - jekyll-include-cache
   - jekyll-paginate
+  - jekyll-feed
 
 permalink: /:categories/:title/
 paginate: 5
