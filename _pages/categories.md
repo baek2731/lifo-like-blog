@@ -1,7 +1,7 @@
 ---
 title: "Categories"
 permalink: /categories/
-layout: archive
+layout: single
 author_profile: false
 ---
 
