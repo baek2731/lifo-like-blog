@@ -6,7 +6,7 @@ categories: [gaming]
 tags: [gaming, tech, trending]
 excerpt: "The UK government is trying to ban kids from talking to strangers in online games, and anyone who thinks this will work needs a reality check. This isn'..."
 header:
-  image: "https://images.unsplash.com/photo-1569006819710-eba8e9273c42?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w5NjcxMDh8MHwxfHNlYXJjaHwxfHxjb25zaWRlcmluZyUyMGJhbm5pbmclMjBraWRzfGVufDF8MHx8fDE3ODAzODA1NTh8MA&ixlib=rb-4.1.0&q=80&w=1080"
+  image: "https://images.unsplash.com/photo-1569006819710-eba8e9273c42?w=1080&q=80"
   caption: "Photo by Tobias on Unsplash"
 author_profile: false
 read_time: true
