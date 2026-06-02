@@ -1,41 +1,31 @@
-# ==========================================
-# 🌐 LIFO-LIKE 글로벌 영문 블로그 코어 세팅
-# ==========================================
 title: "LIFO-LIKE Tech & Tools"
 description: "Global technical guides, gaming strategies, and digital utility toolkits."
 url: "https://blog.lifo-like.com"
 baseurl: ""
 locale: "en-US"
-# ==========================================
-# 🏗️ 테마 엔진 구성
-# ==========================================
-remote_theme: "mmistakes/minimal-mistakes@4.24.0"
+
+theme: minimal-mistakes-jekyll
 minimal_mistakes_skin: "dark"
-# ==========================================
-# 🎯 SEO 및 플러그인
-# ==========================================
+
 plugins:
   - jekyll-seo-tag
   - jekyll-sitemap
   - jekyll-include-cache
   - jekyll-paginate
-# ==========================================
-# 🔗 URL 구조
-# ==========================================
-permalink: /:year/:month/:day/:title/
+
+permalink: /:categories/:title/
 paginate: 5
 paginate_path: "/page:num/"
 timezone: "Asia/Seoul"
-# ==========================================
-# 👤 저자 정보 (사이드바용)
-# ==========================================
+
+include:
+  - _pages
+
 author:
   name: "LIFO-LIKE"
   bio: "Global Tech & Gaming Trends, Analyzed."
   location: "Global"
-# ==========================================
-# 📌 기본 설정
-# ==========================================
+
 defaults:
   - scope:
       path: ""
@@ -53,16 +43,12 @@ defaults:
     values:
       layout: single
       author_profile: false
-# ==========================================
-# 🗂️ 카테고리 및 태그
-# ==========================================
+
 category_archive:
   type: liquid
   path: /categories/
 tag_archive:
   type: liquid
   path: /tags/
-# ==========================================
-# 🔍 검색 기능
-# ==========================================
+
 search: false
