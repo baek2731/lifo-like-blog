@@ -2,9 +2,9 @@ main:
   - title: "Home"
     url: /
   - title: "Tech"
-    url: /tech/
+    url: /categories/#tech
   - title: "Gaming"
-    url: /gaming/
+    url: /categories/#gaming
   - title: "Categories"
     url: /categories/
   - title: "Tags"
