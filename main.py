@@ -267,22 +267,29 @@ def evaluate_filter_and_summarize_oneshot(candidates):
             model=FLASH_MODEL,
             contents=prompt,
             config=types.GenerateContentConfig(
-                temperature=0.1,
-                response_mime_type="application/json"
+                temperature=0.1
             )
         )
 
-        results_list = json.loads(response.text)
+        raw_text = response.text.strip()
+        raw_text = re.sub(r'```json|```', '', raw_text).strip()
+
+        json_match = re.search(r'\[.*\]', raw_text, re.DOTALL)
+        if not json_match:
+            print(f"⚠️ JSON 배열을 찾을 수 없습니다.")
+            return filtered_results
+
+        results_list = json.loads(json_match.group())
         results_map = {item['index']: item for item in results_list}
 
         for idx, cand in enumerate(candidates):
             ai_data = results_map.get(idx, {})
-            score = int(ai_data.get("score", 50))
+            score = int(ai_data.get("score", ai_data.get("traffic_score", 50)))
 
             cand['traffic_score'] = score
             cand['assigned_category'] = ai_data.get("category", cand['subreddit'].upper())
             cand['korean_summary'] = ai_data.get("korean_summary", "요약을 가져오지 못했습니다.")
-            cand['seo_tags'] = ai_data.get("seo_tags", [raw_category if (raw_category := cand['subreddit'].lower()) else "tech"])
+            cand['seo_tags'] = ai_data.get("seo_tags", [cand['subreddit'].lower()])
 
             if score >= 90:
                 print(f"  • [PASS] 점수: {score}점 ➡️ [{cand['subreddit'].upper()}] {cand['title'][:40]}...")
@@ -295,6 +302,33 @@ def evaluate_filter_and_summarize_oneshot(candidates):
         print("   품질 필터 유지를 위해 해당 사이클을 안전하게 건너뜁니다.")
 
     return filtered_results
+
+
+def generate_seo_title(candidate):
+    """60자 이내 SEO 최적화 제목을 자동 생성합니다."""
+    title = candidate['title']
+    if len(title) <= 60:
+        return title
+
+    prompt = (
+        f"Rewrite this title to be under 60 characters for Google SEO. "
+        f"Keep the core topic and most important keywords. Be punchy and direct.\n"
+        f"Original: {title}\n"
+        f"Output ONLY the new title, nothing else."
+    )
+    try:
+        response = client.models.generate_content(
+            model=FLASH_MODEL,
+            contents=prompt,
+            config=types.GenerateContentConfig(temperature=0.3)
+        )
+        short_title = response.text.strip().strip('"').strip("'")
+        if len(short_title) <= 60:
+            return short_title
+    except Exception:
+        pass
+    # 폴백: 60자에서 자르기
+    return title[:57] + "..."
 
 
 def generate_seo_post(candidate):
@@ -323,9 +357,11 @@ def generate_seo_post(candidate):
         "13. MANDATORY: minimum 2000 words. Expand with real analysis, historical context, industry implications.\n"
         "14. Include at least one personal observation starting with 'I've seen...' or 'Having covered...' to feel authentic.\n"
         "15. Use rhetorical questions sparingly — max 2-3 in the entire post.\n"
-        "16. Add a 'Source: r/{subreddit}' line at the very end in italics.\n"
-        "17. Output ONLY raw Markdown. No ```markdown blocks. No preamble."
-    ).format(subreddit=candidate['subreddit'])
+        "16. FORBIDDEN: Do NOT add any 'Source:' line or attribution at the end of the post.\n"
+        "17. IMPORTANT: Present all political and policy topics from a balanced, analytical perspective. "
+        "Avoid partisan language or ideological labels. Critique ideas on their merits, not their political alignment.\n"
+        "18. Output ONLY raw Markdown. No ```markdown blocks. No preamble."
+    )
 
     user_content = (
         f"Source Community: r/{candidate['subreddit']}\n"
@@ -387,7 +423,9 @@ def build_jekyll_front_matter(candidate, image_data, meta_description, raw_categ
 
     # excerpt 내 따옴표 이스케이프
     safe_excerpt = meta_description.replace('"', "'")
-    safe_title = candidate['title'].replace('"', "'")
+    # SEO 최적화 제목 (60자 이내)
+    seo_title = generate_seo_title(candidate)
+    safe_title = seo_title.replace('"', "'")
 
     # SEO 태그 생성 (Gemini가 생성한 태그 + 카테고리 기본 태그)
     seo_tags = candidate.get('seo_tags', [])
