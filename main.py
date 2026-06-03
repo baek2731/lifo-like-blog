@@ -155,8 +155,9 @@ def fetch_unsplash_image(keyword):
         if not alt or len(alt.strip()) < 5:
             alt = keyword
 
-        photo_id = photo["id"]
-        clean_url = f"https://images.unsplash.com/photo-{photo_id}?w=1080&q=80"
+        # urls.regular에서 직접 가져오고 파라미터만 간소화
+        raw_url = photo["urls"]["regular"]
+        clean_url = re.sub(r'\?.*', '?w=1080&q=80', raw_url)
 
         return {
             "url": clean_url,
@@ -256,8 +257,7 @@ def evaluate_filter_and_summarize_oneshot(candidates):
         "- Low Score (0-89): Normal discussions, minor Q&As, personal bug rants, weekly automated community threads, casual chats.\n\n"
         f"Candidates List (JSON Format):\n{json.dumps(input_package, ensure_ascii=False)}\n\n"
         "Output exactly in this JSON array format. No introductory text, no markdown blocks, just raw JSON:\n"
-        '[{"index": 0, "score": 95, "category": "TECH: AI", "korean_summary": "요약문...", "seo_tags": ["AI", "Machine Learning", "OpenAI"]}, ...]\n\n'
-        'IMPORTANT: Use "score" as the key name, NOT "traffic_score".'
+        '[{"index": 0, "score": 95, "category": "TECH: AI", "korean_summary": "요약문...", "seo_tags": ["AI", "Machine Learning", "OpenAI"]}, ...]'
     )
 
     filtered_results = []
@@ -267,33 +267,22 @@ def evaluate_filter_and_summarize_oneshot(candidates):
             model=FLASH_MODEL,
             contents=prompt,
             config=types.GenerateContentConfig(
-                temperature=0.1
+                temperature=0.1,
+                response_mime_type="application/json"
             )
         )
 
-        # JSON 파싱 — 마크다운 코드블록 제거 후 파싱
-        raw_text = response.text.strip()
-        raw_text = re.sub(r'```json|```', '', raw_text).strip()
-        print(f"🔍 Gemini 응답 원문 (전체 길이: {len(raw_text)}):\n{raw_text[:1000]}")
-
-        # JSON 배열 부분만 추출
-        json_match = re.search(r'\[.*\]', raw_text, re.DOTALL)
-        if not json_match:
-            print(f"⚠️ JSON 배열을 찾을 수 없습니다.")
-            return filtered_results
-
-        results_list = json.loads(json_match.group())
+        results_list = json.loads(response.text)
         results_map = {item['index']: item for item in results_list}
 
         for idx, cand in enumerate(candidates):
             ai_data = results_map.get(idx, {})
-            # Gemini가 'score' 또는 'traffic_score' 둘 다 허용
-            score = int(ai_data.get("score", ai_data.get("traffic_score", 50)))
+            score = int(ai_data.get("score", 50))
 
             cand['traffic_score'] = score
             cand['assigned_category'] = ai_data.get("category", cand['subreddit'].upper())
             cand['korean_summary'] = ai_data.get("korean_summary", "요약을 가져오지 못했습니다.")
-            cand['seo_tags'] = ai_data.get("seo_tags", [cand['subreddit'].lower()])
+            cand['seo_tags'] = ai_data.get("seo_tags", [raw_category if (raw_category := cand['subreddit'].lower()) else "tech"])
 
             if score >= 90:
                 print(f"  • [PASS] 점수: {score}점 ➡️ [{cand['subreddit'].upper()}] {cand['title'][:40]}...")
