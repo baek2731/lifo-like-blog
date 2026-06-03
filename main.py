@@ -273,6 +273,7 @@ def evaluate_filter_and_summarize_oneshot(candidates):
         # JSON 파싱 — 마크다운 코드블록 제거 후 파싱
         raw_text = response.text.strip()
         raw_text = re.sub(r'```json|```', '', raw_text).strip()
+        print(f"🔍 Gemini 응답 원문:\n{raw_text[:500]}")
 
         # JSON 배열 부분만 추출
         json_match = re.search(r'\[.*\]', raw_text, re.DOTALL)
