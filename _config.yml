@@ -1,32 +1,26 @@
 title: "LIFO-LIKE"
-description: "Global technical guides, gaming strategies, and digital utility toolkits."
+description: "Tech and gaming news, analyzed. What's happening and why it matters."
 url: "https://blog.lifo-like.com"
 baseurl: ""
 locale: "en-US"
-
 theme: minimal-mistakes-jekyll
 minimal_mistakes_skin: "dark"
-
 plugins:
   - jekyll-seo-tag
   - jekyll-sitemap
   - jekyll-include-cache
   - jekyll-paginate
   - jekyll-feed
-
 permalink: /:categories/:title/
 paginate: 5
 paginate_path: "/page:num/"
 timezone: "Asia/Seoul"
-
 include:
   - _pages
-
 author:
   name: "LIFO-LIKE"
   bio: "Global Tech & Gaming Trends, Analyzed."
   location: "Global"
-
 defaults:
   - scope:
       path: ""
@@ -44,15 +38,13 @@ defaults:
     values:
       layout: single
       author_profile: false
-
 category_archive:
   type: liquid
   path: /categories/
 tag_archive:
   type: liquid
   path: /tags/
-  
-search: false
 
+search: false
 logo: "/favicon.png"
 google_analytics: "G-5XCQYLVDQY"
