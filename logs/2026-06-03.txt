@@ -2,3 +2,4 @@
 [2026-06-03T11:47:29Z] [SUCCESS] 발행 완료 — 제목: God of War Laufey - Official Gameplay Reveal | PS5 / 카테고리: gaming / URL: https://blog.lifo-like.com/gaming/god-of-war-laufey-official-gameplay-reveal-ps5-games/
 [2026-06-03T14:04:59Z] [INFO] 봇 시작 — 마지막 발행: 없음 / 카테고리: 없음
 [2026-06-03T14:06:35Z] [SUCCESS] 발행 완료 — 제목: PlayStation State of Play / 카테고리: gaming / URL: https://blog.lifo-like.com/gaming/playstation-state-of-play/
+[2026-06-03T18:19:47Z] [INFO] 오늘(2026-06-03) 이미 발행 완료. API 중복 호출 방지를 위해 종료합니다.
