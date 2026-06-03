@@ -266,12 +266,21 @@ def evaluate_filter_and_summarize_oneshot(candidates):
             model=FLASH_MODEL,
             contents=prompt,
             config=types.GenerateContentConfig(
-                temperature=0.1,
-                response_mime_type="application/json"
+                temperature=0.1
             )
         )
 
-        results_list = json.loads(response.text)
+        # JSON 파싱 — 마크다운 코드블록 제거 후 파싱
+        raw_text = response.text.strip()
+        raw_text = re.sub(r'```json|```', '', raw_text).strip()
+
+        # JSON 배열 부분만 추출
+        json_match = re.search(r'\[.*\]', raw_text, re.DOTALL)
+        if not json_match:
+            print(f"⚠️ JSON 배열을 찾을 수 없습니다. 응답 내용:\n{raw_text[:300]}")
+            return filtered_results
+
+        results_list = json.loads(json_match.group())
         results_map = {item['index']: item for item in results_list}
 
         for idx, cand in enumerate(candidates):
@@ -281,7 +290,7 @@ def evaluate_filter_and_summarize_oneshot(candidates):
             cand['traffic_score'] = score
             cand['assigned_category'] = ai_data.get("category", cand['subreddit'].upper())
             cand['korean_summary'] = ai_data.get("korean_summary", "요약을 가져오지 못했습니다.")
-            cand['seo_tags'] = ai_data.get("seo_tags", [raw_category if (raw_category := cand['subreddit'].lower()) else "tech"])
+            cand['seo_tags'] = ai_data.get("seo_tags", [cand['subreddit'].lower()])
 
             if score >= 90:
                 print(f"  • [PASS] 점수: {score}점 ➡️ [{cand['subreddit'].upper()}] {cand['title'][:40]}...")
