@@ -1,0 +1,36 @@
+name: Auto Blog Bot
+
+on:
+  schedule:
+    # 매일 한국시간 오후 11시 = UTC 14:00
+    - cron: '0 14 * * *'
+  workflow_dispatch: # 수동 실행도 가능
+
+jobs:
+  run-bot:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          pip install requests beautifulsoup4 lxml PyGithub google-genai python-dotenv markdown
+
+      - name: Run bot
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GITHUB_TOKEN: ${{ secrets.BOT_GITHUB_TOKEN }}
+          GITHUB_REPO_NAME: ${{ secrets.GITHUB_REPO_NAME }}
+          UNSPLASH_ACCESS_KEY: ${{ secrets.UNSPLASH_ACCESS_KEY }}
+          THREADS_APP_ID: ${{ secrets.THREADS_APP_ID }}
+          THREADS_APP_SECRET: ${{ secrets.THREADS_APP_SECRET }}
+          THREADS_ACCESS_TOKEN: ${{ secrets.THREADS_ACCESS_TOKEN }}
+          THREADS_USER_ID: ${{ secrets.THREADS_USER_ID }}
+        run: python main.py
