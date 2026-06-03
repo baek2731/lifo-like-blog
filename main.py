@@ -247,6 +247,7 @@ def fetch_global_trends(subreddits, history):
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36"
     }
     candidates = []
+    now_utc = datetime.now(timezone.utc)
 
     for sub in subreddits:
         url = f"https://www.reddit.com/r/{sub}/.rss"
@@ -267,6 +268,19 @@ def fetch_global_trends(subreddits, history):
 
                 if post_id in history["published_ids"]:
                     continue
+
+                # ── 날짜 필터: 48시간 이내 글만 허용 ──
+                updated_tag = entry.find("updated")
+                if updated_tag:
+                    try:
+                        post_time = datetime.fromisoformat(updated_tag.text.replace("Z", "+00:00"))
+                        hours_old = (now_utc - post_time).total_seconds() / 3600
+                        if hours_old > 48:
+                            raw_title = entry.find("title").text if entry.find("title") else ""
+                            print(f"  • [SKIP] {hours_old:.0f}시간 전 오래된 글 제외: {raw_title[:40]}...")
+                            continue
+                    except Exception:
+                        pass  # 날짜 파싱 실패 시 통과 허용
 
                 title = entry.find("title").text if entry.find("title") else "No Title"
                 title = clean_reddit_title(title)  # Reddit 태그 제거
