@@ -51,5 +51,7 @@ category_archive:
 tag_archive:
   type: liquid
   path: /tags/
-
+  
 search: false
+
+logo: "/favicon.png"
