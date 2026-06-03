@@ -1,6 +1,6 @@
 ---
 layout: single
-title: "[MEGATHREAD] PlayStation State of Play"
+title: PlayStation State of Play
 date: 2026-06-03 17:26:16 +0900
 categories: [gaming]
 tags: [gaming, tech, trending]
