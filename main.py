@@ -85,6 +85,61 @@ def save_history(history_data):
         print(f"⚠️ history.json 저장 실패: {e}")
 
 
+def log_to_github(message, log_type="INFO"):
+    """GitHub 저장소 logs/ 폴더에 날짜별 로그를 저장합니다."""
+    try:
+        now_utc = datetime.now(timezone.utc)
+        log_date = now_utc.strftime("%Y-%m-%d")
+        log_path = f"logs/{log_date}.txt"
+        timestamp = now_utc.strftime("%Y-%m-%dT%H:%M:%SZ")
+        log_line = f"[{timestamp}] [{log_type}] {message}\n"
+
+        auth = Auth.Token(GITHUB_TOKEN)
+        g = Github(auth=auth)
+        repo = g.get_repo(GITHUB_REPO_NAME)
+
+        try:
+            file = repo.get_contents(log_path)
+            existing = file.decoded_content.decode('utf-8')
+            repo.update_file(
+                path=log_path,
+                message=f"log: {log_date}",
+                content=existing + log_line,
+                sha=file.sha
+            )
+        except GithubException:
+            repo.create_file(
+                path=log_path,
+                message=f"log: {log_date}",
+                content=log_line
+            )
+    except Exception as e:
+        print(f"⚠️ 로그 저장 실패: {e}")
+
+
+def check_threads_token_expiry(history_data):
+    """Threads 토큰 만료 임박 시 GitHub Actions 경고를 출력합니다."""
+    last_at = history_data.get("last_published_at")
+    token_refreshed_at = history_data.get("threads_token_refreshed_at")
+
+    check_date_str = token_refreshed_at or last_at
+    if not check_date_str:
+        return
+
+    try:
+        check_date = datetime.fromisoformat(check_date_str.replace("Z", "+00:00"))
+        now_utc = datetime.now(timezone.utc)
+        days_elapsed = (now_utc - check_date).days
+
+        if days_elapsed >= 50:
+            warning = f"⚠️ [THREADS TOKEN WARNING] 토큰 발급 후 {days_elapsed}일 경과. 곧 만료됩니다. Meta Developer에서 토큰을 재발급하세요!"
+            print(warning)
+            print("::warning::" + warning)  # GitHub Actions 경고 표시
+            log_to_github(warning, "WARNING")
+    except Exception:
+        pass
+
+
 def extract_image_keyword(title):
     """포스트 제목에서 Unsplash 검색용 핵심 키워드를 추출합니다."""
     clean = re.sub(r'[^\w\s]', ' ', title)
@@ -291,11 +346,11 @@ def evaluate_filter_and_summarize_oneshot(candidates):
             cand['korean_summary'] = ai_data.get("korean_summary", "요약을 가져오지 못했습니다.")
             cand['seo_tags'] = ai_data.get("seo_tags", [cand['subreddit'].lower()])
 
-            if score >= 90:
+            if score >= 85:
                 print(f"  • [PASS] 점수: {score}점 ➡️ [{cand['subreddit'].upper()}] {cand['title'][:40]}...")
                 filtered_results.append(cand)
             else:
-                print(f"  • [DROP] 점수: {score}점 ➡️ [{cand['subreddit'].upper()}] {cand['title'][:40]}... (90점 미만 폐기)")
+                print(f"  • [DROP] 점수: {score}점 ➡️ [{cand['subreddit'].upper()}] {cand['title'][:40]}... (85점 미만 폐기)")
 
     except Exception as e:
         print(f"⚠️ 통합 원샷 엔진 오류 발생: {e}")
@@ -700,18 +755,26 @@ if __name__ == "__main__":
     now_utc_str = now_utc.strftime("%Y-%m-%dT%H:%M:%SZ")
     last_published_date = history.get("last_published_date")
 
+    # ── Threads 토큰 만료 체크 ──
+    check_threads_token_expiry(history)
+
     if last_published_date == today:
-        print(f"⚠️ 오늘({today}) 이미 발행 완료. API 중복 호출 방지를 위해 종료합니다.")
+        msg = f"오늘({today}) 이미 발행 완료. API 중복 호출 방지를 위해 종료합니다."
+        print(f"⚠️ {msg}")
+        log_to_github(msg, "INFO")
         exit()
 
     last_category = history.get("last_category", None)
     print(f"📋 마지막 발행 카테고리: {last_category or '없음 (첫 실행)'}")
     print(f"📅 마지막 발행 날짜: {last_published_date or '없음'}")
+    log_to_github(f"봇 시작 — 마지막 발행: {last_published_date or '없음'} / 카테고리: {last_category or '없음'}", "INFO")
 
     raw_candidates = fetch_global_trends(TARGET_SUBREDDITS, history)
 
     if not raw_candidates:
-        print("⚠️ 모든 최신 피드가 이미 처리되었거나 후보군이 비어 있습니다. 프로그램을 종료합니다.")
+        msg = "모든 최신 피드가 이미 처리되었거나 후보군이 비어 있습니다."
+        print(f"⚠️ {msg}")
+        log_to_github(msg, "WARNING")
         exit()
 
     print(f"✨ 실시간 수집된 데이터 {len(raw_candidates)}개를 확보했습니다.")
@@ -719,8 +782,10 @@ if __name__ == "__main__":
     clean_candidates = evaluate_filter_and_summarize_oneshot(raw_candidates)
 
     if not clean_candidates:
-        print("\n⚠️ [안내] 금일 수집된 피드 중 90점을 돌파한 메가 트렌드가 존재하지 않습니다.")
+        msg = "금일 수집된 피드 중 85점을 돌파한 메가 트렌드가 존재하지 않습니다."
+        print(f"\n⚠️ [안내] {msg}")
         print("   노이즈 없는 청정 관리를 위해 프로그램을 안전하게 종료합니다.")
+        log_to_github(msg, "WARNING")
         exit()
 
     tech_subs = ["technology", "software", "gadgets"]
@@ -811,4 +876,6 @@ if __name__ == "__main__":
         history["last_published_at"] = now_utc_str
         save_history(history)
 
+        success_msg = f"발행 완료 — 제목: {selected_post['title'][:50]} / 카테고리: {raw_category} / URL: {blog_url}"
+        log_to_github(success_msg, "SUCCESS")
         print(f"\n🏁 파이프라인 1회 사이클 완료! 발행 카테고리: {raw_category}")
