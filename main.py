@@ -538,7 +538,8 @@ def generate_threads_post(candidate, blog_url):
         f"4. Add 4-5 relevant hashtags based on the topic content (e.g. #Fortnite #UKPolicy #Gaming).\n"
         f"5. Total length: under 500 characters.\n"
         f"6. NO generic phrases like 'Check out my blog' or 'I wrote about'.\n"
-        f"7. Output ONLY the post text, nothing else."
+        f"7. Output ONLY the post text, nothing else.\n"
+        f"8. FORBIDDEN: Do NOT use any markdown formatting like **bold**, *italic*, or # headers. Plain text only."
     )
 
     response = client.models.generate_content(
