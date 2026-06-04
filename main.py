@@ -320,7 +320,7 @@ def evaluate_filter_and_summarize_oneshot(candidates):
         "1. Evaluate the 'traffic_score' (0 to 100 integer) based on its ability to drive organic search traffic and high user engagement on a blog.\n"
         "2. Classify the 'category' (e.g., TECH: AI & Robotics, TECH: Privacy, GAMING: Industry, etc.).\n"
         "3. Write a 'korean_summary' (A concise 2-3 sentence explanation in natural, professional Korean detailing what the discussion is about and why it is trending).\n"
-        "4. Generate 'seo_tags' — a list of 5-7 highly specific SEO keyword tags based on the actual content (e.g. ['PlayStation', 'State of Play', 'Sony', 'PS5', 'Gaming Industry']). NO generic tags like 'gaming' or 'tech' alone.\n\n"
+        "4. Generate 'seo_tags' — a list of 5-7 highly specific SEO keyword tags based on the actual content (e.g. ['PlayStation', 'State of Play', 'Sony', 'PS5', 'Gaming Industry']). NO generic tags like 'gaming' or 'tech' alone. ALL tags MUST be in English only. Never use Korean or any other language for tags.\n\n"
         "CRITERIA FOR TRAFFIC SCORE:\n"
         "- High Score (90-100): Mega-trends, industry-shifting news, controversial policies, revolutionary DIY tech/hacks, global product launches.\n"
         "- Low Score (0-89): Normal discussions, minor Q&As, personal bug rants, weekly automated community threads, casual chats.\n\n"
