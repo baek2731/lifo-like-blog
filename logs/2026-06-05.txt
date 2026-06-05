@@ -1,3 +1,4 @@
 [2026-06-05T00:05:23Z] [INFO] 봇 시작 — 마지막 발행: 2026-06-04 / 카테고리: tech
 [2026-06-05T00:05:28Z] [WARNING] 금일 수집된 피드 중 85점을 돌파한 메가 트렌드가 존재하지 않습니다.
 [2026-06-05T00:10:16Z] [INFO] 봇 시작 — 마지막 발행: 2026-06-04 / 카테고리: tech
+[2026-06-05T00:11:38Z] [SUCCESS] 발행 완료 — 제목: Sega Issues DMCA Takedowns to Scrub Persona 6 Imag / 카테고리: gaming / URL: https://blog.lifo-like.com/gaming/sega-issues-dmca-takedowns-to-scrub-persona-6-images-from-th/
