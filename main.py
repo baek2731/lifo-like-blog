@@ -551,27 +551,6 @@ def generate_threads_post(candidate, blog_url):
     return response.text.strip()
 
 
-def refresh_threads_token():
-    """Threads 액세스 토큰을 장기 토큰으로 갱신합니다."""
-    try:
-        url = "https://graph.threads.net/refresh_access_token"
-        params = {
-            "grant_type": "th_refresh_token",
-            "access_token": THREADS_ACCESS_TOKEN
-        }
-        response = requests.get(url, params=params, timeout=10)
-        data = response.json()
-        if "access_token" in data:
-            print(f"✅ Threads 토큰 갱신 완료!")
-            return data["access_token"]
-        else:
-            print(f"⚠️ 토큰 갱신 실패: {data}")
-            return THREADS_ACCESS_TOKEN
-    except Exception as e:
-        print(f"⚠️ 토큰 갱신 오류: {e}")
-        return THREADS_ACCESS_TOKEN
-
-
 def post_to_threads(candidate, blog_url):
     """Threads API를 통해 Gemini가 생성한 임팩트 포스트를 자동 발행합니다."""
     print("\n📱 Threads 자동 포스팅 시작...")
@@ -582,13 +561,15 @@ def post_to_threads(candidate, blog_url):
         thread_text = generate_threads_post(candidate, blog_url)
         print(f"  • 생성된 포스트:\n{thread_text}\n")
 
-        # 토큰 유효성 체크 및 갱신 시도
+        # 토큰 유효성 체크 (자동 갱신 없음 — 만료 시 수동 갱신 필요)
         token = THREADS_ACCESS_TOKEN
         check_url = f"https://graph.threads.net/v1.0/me?fields=id&access_token={token}"
         check_res = requests.get(check_url, timeout=10)
         if check_res.status_code != 200:
-            print("  • 토큰 만료 감지, 갱신 시도 중...")
-            token = refresh_threads_token()
+            print("  • ⚠️ [토큰 만료] Threads 액세스 토큰이 만료되었습니다.")
+            print("  • ⚠️ GitHub Secrets > THREADS_ACCESS_TOKEN을 수동으로 갱신해 주세요.")
+            print("  • ⚠️ 갱신 방법: developers.facebook.com → 앱 선택 → Threads API → Access Tokens")
+            return
 
         # Step 1 — 미디어 컨테이너 생성 (APP_ID 대신 USER_ID 사용)
         container_url = f"https://graph.threads.net/v1.0/{THREADS_USER_ID}/threads"
