@@ -218,7 +218,7 @@ def fetch_unsplash_image(keyword):
             "url": clean_url,
             "alt": alt,
             "photographer_name": photo["user"]["name"],
-            "photographer_url": photo["user"]["links"]["html"] + "?utm_source=blog_bot&utm_medium=referral"
+            "photographer_url": photo["user"]["links"]["html"] + "?utm_source=lifolike&utm_medium=referral"
         }
 
     except Exception as e:
@@ -638,7 +638,7 @@ def deploy_to_github(candidate, seo_content):
         credit_line = (
             f"\n*Photo by [{image_data['photographer_name']}]"
             f"({image_data['photographer_url']}) on "
-            f"[Unsplash](https://unsplash.com?utm_source=blog_bot&utm_medium=referral)*\n\n"
+            f"[Unsplash](https://unsplash.com?utm_source=lifolike&utm_medium=referral)*\n\n"
         )
         final_content = front_matter + credit_line + jekyll_content
     else:
@@ -661,7 +661,7 @@ def deploy_to_github(candidate, seo_content):
     credit_html = (
         f'<p class="photo-credit">Photo by '
         f'<a href="{image_data["photographer_url"]}" target="_blank">{image_data["photographer_name"]}</a> on '
-        f'<a href="https://unsplash.com?utm_source=blog_bot&utm_medium=referral" target="_blank">Unsplash</a></p>'
+        f'<a href="https://unsplash.com?utm_source=lifolike&utm_medium=referral" target="_blank">Unsplash</a></p>'
     ) if image_data else ""
 
     html_template = f"""<!DOCTYPE html>
