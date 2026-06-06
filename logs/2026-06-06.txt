@@ -1,1 +1,2 @@
 [2026-06-06T15:08:20Z] [INFO] 봇 시작 — 마지막 발행: 2026-06-05 / 카테고리: gaming
+[2026-06-06T15:09:42Z] [SUCCESS] 발행 완료 — 제목: McDonald's Introduces AI Drive-Thru System, Sparki / 카테고리: tech / URL: https://blog.lifo-like.com/tech/mcdonalds-introduces-ai-drive-thru-system-sparking-customer/
