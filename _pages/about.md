@@ -3,6 +3,9 @@ layout: single
 title: "About LIFO-LIKE"
 permalink: /about/
 author_profile: false
+excerpt: "Tech and gaming journalist with 10+ years covering CES, E3, and GDC. Real analysis, no PR fluff."
+header:
+  og_image: "/favicon.png"
 ---
 
 ## Who's Behind This?
@@ -25,20 +28,15 @@ No sponsored content. No PR fluff. No "10 Reasons Why This Product Is Amazing" l
 - **Gaming** — industry news, publisher behavior, game announcements that actually matter
 - **The intersection of both** — because in 2026, they're increasingly the same thing
 
-## Why Trust This?
+## Editorial Standards
 
-Fair question. Here's what I bring:
+Every post on LIFO-LIKE reflects my own analysis and opinion. I don't accept sponsored content or paid placements. If a post contains an error, I correct it openly and promptly — corrections are noted directly in the article.
 
-- 10+ years tracking tech and gaming beats
-- Direct experience covering major industry events (CES, GDC, E3)
-- No advertiser relationships that influence editorial decisions
-- Published analysis cited by communities across Reddit, Discord, and industry forums
+I aim to present all political and policy topics from a balanced, analytical perspective. No partisan framing. No ideological labels. Ideas are critiqued on their merits.
 
 ## Contact
 
 Have a tip, a correction, or just want to argue about something? Reach out via [Threads](https://www.threads.net/@lifo.like).
-
-If you spotted an error in a post, I want to know. Corrections are published openly.
 
 ---
 
