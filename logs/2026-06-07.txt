@@ -1,1 +1,2 @@
 [2026-06-07T15:19:33Z] [INFO] 봇 시작 — 마지막 발행: 2026-06-06 / 카테고리: tech
+[2026-06-07T15:21:12Z] [SUCCESS] 발행 완료 — 제목: Gears of War: E-Day rated PEGI 18 for XBOX, PS5 an / 카테고리: gaming / URL: https://blog.lifo-like.com/gaming/gears-of-war-e-day-rated-pegi-18-for-xbox-ps5-and/
