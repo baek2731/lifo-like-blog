@@ -19,8 +19,12 @@ include:
   - _pages
 author:
   name: "LIFO-LIKE"
-  bio: "Global Tech & Gaming Trends, Analyzed."
+  bio: "Tech and gaming journalist. 10+ years covering CES, E3, and GDC. Writing about the stories that actually matter."
   location: "Global"
+  links:
+    - label: "Threads"
+      icon: "fab fa-fw fa-threads"
+      url: "https://www.threads.net/@lifo.like"
 defaults:
   - scope:
       path: ""
@@ -44,7 +48,6 @@ category_archive:
 tag_archive:
   type: liquid
   path: /tags/
-
 search: false
 logo: "/favicon.png"
 google_analytics: "G-5XCQYLVDQY"
