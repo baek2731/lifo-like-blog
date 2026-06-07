@@ -322,8 +322,10 @@ def evaluate_filter_and_summarize_oneshot(candidates):
         "3. Write a 'korean_summary' (A concise 2-3 sentence explanation in natural, professional Korean detailing what the discussion is about and why it is trending).\n"
         "4. Generate 'seo_tags' — a list of 5-7 highly specific SEO keyword tags based on the actual content (e.g. ['PlayStation', 'State of Play', 'Sony', 'PS5', 'Gaming Industry']). NO generic tags like 'gaming' or 'tech' alone. ALL tags MUST be in English only. Never use Korean or any other language for tags.\n\n"
         "CRITERIA FOR TRAFFIC SCORE:\n"
-        "- High Score (90-100): Mega-trends, industry-shifting news, controversial policies, revolutionary DIY tech/hacks, global product launches.\n"
-        "- Low Score (0-89): Normal discussions, minor Q&As, personal bug rants, weekly automated community threads, casual chats.\n\n"
+        "- High Score (90-100): Mega-trends, industry-shifting news, controversial policies, revolutionary DIY tech/hacks, global product launches. The event or news must be RECENT (within the last 7 days).\n"
+        "- Medium Score (70-84): Interesting discussions but not breaking news, or topics that are relevant but not immediately timely.\n"
+        "- Low Score (0-69): Normal discussions, minor Q&As, personal bug rants, weekly automated community threads, casual chats.\n"
+        "- FRESHNESS PENALTY: If the core news event is older than 2 weeks (e.g. a product launch from last month, a policy change from weeks ago), deduct 20-30 points regardless of topic importance. Reddit may resurface old news; always evaluate the ORIGINAL event date, not the Reddit post date.\n\n"
         f"Candidates List (JSON Format):\n{json.dumps(input_package, ensure_ascii=False)}\n\n"
         "Output exactly in this JSON array format. No introductory text, no markdown blocks, just raw JSON:\n"
         '[{"index": 0, "score": 95, "category": "TECH: AI", "korean_summary": "요약문...", "seo_tags": ["AI", "Machine Learning", "OpenAI"]}, ...]'
