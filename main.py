@@ -472,7 +472,8 @@ def generate_meta_description(candidate, seo_content):
             f"3. Create curiosity or urgency — make people WANT to click.\n"
             f"4. Do NOT start with 'Learn', 'Discover', 'Find out', or 'In this article'.\n"
             f"5. Write in active voice. Be direct and specific.\n"
-            f"6. Output ONLY the meta description text, nothing else."
+            f"6. FORBIDDEN: Do NOT use clickbait phrases like 'Don't miss', 'Click here', 'Find out more', 'You won't believe', 'Must read'.\n"
+            f"7. Output ONLY the meta description text, nothing else."
         )
         response = client.models.generate_content(
             model=FLASH_MODEL,
