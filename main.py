@@ -611,7 +611,8 @@ def generate_threads_post(candidate, blog_url):
         f"5. Total length: under 500 characters.\n"
         f"6. NO generic phrases like 'Check out my blog' or 'I wrote about'.\n"
         f"7. Output ONLY the post text, nothing else.\n"
-        f"8. FORBIDDEN: Do NOT use any markdown formatting like **bold**, *italic*, or # headers. Plain text only."
+        f"8. FORBIDDEN: Do NOT use ANY markdown formatting. This means absolutely no **bold**, no *italic* (not even *single asterisks around words*), no # headers, no ~~strikethrough~~. Plain text ONLY.\n"
+        f"9. FORBIDDEN: Do NOT write sentences in ALL CAPS. Normal sentence case only. Emphasis must come from word choice, not capitalization."
     )
 
     response = client.models.generate_content(
