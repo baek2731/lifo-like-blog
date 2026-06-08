@@ -3,14 +3,14 @@ layout: single
 title: "About LIFO-LIKE"
 permalink: /about/
 author_profile: false
-excerpt: "Tech and gaming journalist with 10+ years covering CES, E3, and GDC. Real analysis, no PR fluff."
+excerpt: "LIFO — tech and gaming journalist with 10+ years covering CES, E3, and GDC. Real analysis, no PR fluff."
 header:
   og_image: "/favicon.png"
 ---
 
 ## Who's Behind This?
 
-My name is **Alex Morgan**. I've spent the better part of a decade embedded in the tech and gaming industry — covering product launches, policy shifts, and the occasional corporate meltdown that everyone saw coming except the company itself.
+I go by **LIFO** — the person running LIFO-LIKE. I've spent the better part of a decade embedded in the tech and gaming industry — covering product launches, policy shifts, and the occasional corporate meltdown that everyone saw coming except the company itself.
 
 I've been in the press room at CES. I've watched E3 go from spectacle to ghost town. I've sat through enough "revolutionary" product demos to fill a graveyard of broken promises. That experience is what LIFO-LIKE runs on.
 
