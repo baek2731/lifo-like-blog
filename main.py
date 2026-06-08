@@ -500,8 +500,17 @@ def build_jekyll_filename(title):
     slug = re.sub(r'[^\w\s-]', '', slug)
     slug = re.sub(r'[\s_]+', '-', slug)
     slug = re.sub(r'-+', '-', slug).strip('-')
-    # URL 잘림 방지: 50자 이내로 제한 (날짜 11자 + 하이픈 1자 = 12자 고려)
-    slug = slug[:50].rstrip('-')
+    # URL 잘림 방지: 단어 단위로 45자 이내 제한
+    if len(slug) > 45:
+        parts = slug.split('-')
+        result = []
+        length = 0
+        for part in parts:
+            if length + len(part) + 1 > 45:
+                break
+            result.append(part)
+            length += len(part) + 1
+        slug = '-'.join(result)
     return f"{today}-{slug}.md"
 
 
