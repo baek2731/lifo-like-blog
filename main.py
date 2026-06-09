@@ -493,10 +493,10 @@ def generate_meta_description(candidate, seo_content):
         return clean
 
 
-def build_jekyll_filename(title):
+def build_jekyll_filename(seo_title):
     """Jekyll _posts/ 규격 파일명을 생성합니다: YYYY-MM-DD-slug.md"""
     today = datetime.now().strftime("%Y-%m-%d")
-    slug = title.lower()
+    slug = seo_title.lower()
     slug = re.sub(r'[^\w\s-]', '', slug)
     slug = re.sub(r'[\s_]+', '-', slug)
     slug = re.sub(r'-+', '-', slug).strip('-')
@@ -511,10 +511,10 @@ def build_jekyll_filename(title):
             result.append(part)
             length += len(part) + 1
         slug = '-'.join(result)
-    return f"{today}-{slug}.md"
+    return f"{today}-{slug}.md", slug
 
 
-def build_jekyll_front_matter(candidate, image_data, meta_description, raw_category):
+def build_jekyll_front_matter(candidate, image_data, meta_description, raw_category, seo_title):
     """Minimal Mistakes 테마 규격의 Jekyll front matter를 생성합니다."""
 
     # 카테고리별 폴백 이미지 (Unsplash 이미지 없을 때)
@@ -535,9 +535,10 @@ def build_jekyll_front_matter(candidate, image_data, meta_description, raw_categ
 
     # excerpt 내 따옴표 이스케이프
     safe_excerpt = meta_description.replace('"', "'")
-    # SEO 최적화 제목 (60자 이내)
-    seo_title = generate_seo_title(candidate)
     safe_title = seo_title.replace('"', "'")
+
+    # slug 생성 (permalink용)
+    _, slug = build_jekyll_filename(seo_title)
 
     # SEO 태그 생성 (Gemini가 생성한 태그 + 카테고리 기본 태그)
     seo_tags = candidate.get('seo_tags', [])
@@ -552,6 +553,7 @@ date: {datetime.now().strftime("%Y-%m-%d %H:%M:%S")} +0900
 categories: [{raw_category}]
 tags: [{tags_str}]
 excerpt: "{safe_excerpt}"
+permalink: /{raw_category}/{slug}/
 header:
   image: "{header_image}"
   caption: "Photo by {photographer} on Unsplash"
@@ -573,7 +575,7 @@ share: true
   "dateModified": "{datetime.now().strftime("%Y-%m-%dT%H:%M:%S")}+09:00",
   "author": {{
     "@type": "Person",
-    "name": "Alex Morgan",
+    "name": "LIFO",
     "url": "https://blog.lifo-like.com/about/"
   }},
   "publisher": {{
@@ -586,7 +588,7 @@ share: true
   }},
   "mainEntityOfPage": {{
     "@type": "WebPage",
-    "@id": "https://blog.lifo-like.com/{raw_category}/{safe_title.lower().replace(' ', '-')}/"
+    "@id": "https://blog.lifo-like.com/{raw_category}/{slug}/"
   }}
 }}
 </script>
@@ -697,8 +699,11 @@ def deploy_to_github(candidate, seo_content):
     # 메타 디스크립션 자동 생성
     meta_description = generate_meta_description(candidate, seo_content)
 
+    # SEO 제목 먼저 생성 (slug에도 사용)
+    seo_title = generate_seo_title(candidate)
+
     # Jekyll front matter 생성
-    front_matter = build_jekyll_front_matter(candidate, image_data, meta_description, raw_category)
+    front_matter = build_jekyll_front_matter(candidate, image_data, meta_description, raw_category, seo_title)
 
     # 애드센스 플레이스홀더 교체
     jekyll_content = seo_content.replace(
@@ -717,8 +722,8 @@ def deploy_to_github(candidate, seo_content):
     else:
         final_content = front_matter + jekyll_content
 
-    # Jekyll 파일명 생성
-    filename = build_jekyll_filename(candidate['title'])
+    # Jekyll 파일명 생성 (SEO 제목 기반)
+    filename, slug = build_jekyll_filename(seo_title)
     github_path = f"_posts/{filename}"
 
     # ── 로컬 HTML 프리뷰 병행 생성 ──
@@ -933,8 +938,8 @@ if __name__ == "__main__":
 
         # Threads 자동 포스팅
         raw_category = selected_post['assigned_category'].split(':')[0].strip().lower()
-        filename = build_jekyll_filename(selected_post['title'])
-        slug = filename.replace(now_utc.strftime("%Y-%m-%d-"), "").replace(".md", "")
+        seo_title_for_url = generate_seo_title(selected_post)
+        _, slug = build_jekyll_filename(seo_title_for_url)
         blog_url = f"https://blog.lifo-like.com/{raw_category}/{slug}/"
         post_to_threads(selected_post, blog_url)
 
