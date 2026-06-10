@@ -382,9 +382,18 @@ def evaluate_filter_and_summarize_oneshot(candidates):
     return filtered_results
 
 
+def sanitize_title(title):
+    """제목에서 Jekyll/마크다운 렌더링을 망가뜨리는 특수문자를 제거합니다."""
+    # 파이프(|), 백틱(`), 꺾쇠(<>) 등 마크다운 표·코드 문법 유발 문자 제거
+    title = re.sub(r'[|`<>]', '', title)
+    # 연속 공백 정리
+    title = re.sub(r'\s+', ' ', title).strip()
+    return title
+
+
 def generate_seo_title(candidate):
     """60자 이내 SEO 최적화 제목을 자동 생성합니다."""
-    title = candidate['title']
+    title = sanitize_title(candidate['title'])
     if len(title) <= 60:
         return title
 
