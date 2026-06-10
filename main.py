@@ -401,7 +401,11 @@ def generate_seo_title(candidate):
         f"Rewrite this title to be under 60 characters for Google SEO. "
         f"Keep the core topic and most important keywords. Be punchy and direct.\n"
         f"Original: {title}\n"
-        f"Output ONLY the new title, nothing else."
+        f"RULES:\n"
+        f"- Under 60 characters\n"
+        f"- FORBIDDEN: Do NOT use pipe characters (|), backticks, or any markdown syntax\n"
+        f"- FORBIDDEN: Do NOT use colons to separate date/subtitle (e.g. 'Title | June 2026' is wrong)\n"
+        f"- Output ONLY the new title, nothing else."
     )
     try:
         response = client.models.generate_content(

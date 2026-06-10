@@ -18,7 +18,7 @@ timezone: "Asia/Seoul"
 include:
   - _pages
 author:
-  name: "LIFO-LIKE"
+  name: "LIFO"
   bio: "Tech and gaming journalist. 10+ years covering CES, E3, and GDC. Writing about the stories that actually matter."
   location: "Global"
   links:
