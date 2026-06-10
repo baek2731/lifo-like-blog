@@ -1,6 +1,6 @@
 ---
 layout: single
-title: "KINGDOM HEARTS IV – Teaser Trailer | June 2026"
+title: "Kingdom Hearts IV Teaser Trailer: June 2026 Breakdown"
 date: 2026-06-09 16:29:33 +0900
 categories: [gaming]
 tags: [gaming, Kingdom Hearts IV trailer, KH4 release date, Square Enix RPG, Kingdom Hearts news, Future game trailers 2026, Action RPG games, Gaming predictions]
