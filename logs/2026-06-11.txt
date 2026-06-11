@@ -1,1 +1,2 @@
 [2026-06-11T17:33:51Z] [INFO] 봇 시작 — 마지막 발행: 2026-06-10 / 카테고리: gadgets
+[2026-06-11T17:35:39Z] [SUCCESS] 발행 완료 — 제목: Iran warns SpaceX & Starlink will be considered 'm / 카테고리: tech / URL: https://blog.lifo-like.com/tech/iran-warns-spacex-starlink-military-targets/
