@@ -1,1 +1,2 @@
 [2026-06-12T16:40:17Z] [INFO] 봇 시작 — 마지막 발행: 2026-06-11 / 카테고리: tech
+[2026-06-12T16:41:36Z] [SUCCESS] 발행 완료 — 제목: Several police officers arrested for using controv / 카테고리: tech / URL: https://blog.lifo-like.com/tech/18-police-arrested-for-flock-ai-partner/
