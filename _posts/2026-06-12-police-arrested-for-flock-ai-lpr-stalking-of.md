@@ -5,7 +5,6 @@ date: 2026-06-12 16:41:13 +0900
 categories: [tech]
 tags: [tech, Flock AI, license plate readers, AI ethics, police misconduct, privacy violation, surveillance technology, AI misuse]
 excerpt: "Police officers arrested for using Flock AI license plate readers to stalk romantic partners. 18+ US cases expose shocking abuse of power."
-permalink: /tech/police-arrested-for-flock-ai-lpr-stalking-of/
 header:
   image: "https://images.unsplash.com/photo-1557081999-0ea3e23579d2?w=1080&q=80"
   caption: "Photo by ev on Unsplash"
