@@ -210,6 +210,14 @@ def fetch_unsplash_image(keyword):
         if not alt or len(alt.strip()) < 5:
             alt = keyword
 
+        # alt 텍스트를 키워드 포함 서술형으로 개선
+        topic_keyword = keyword.split()[:3]
+        topic_str = ' '.join(topic_keyword).title()
+        if alt and len(alt.strip()) >= 5:
+            alt = f"{alt.strip().capitalize()} — {topic_str} coverage on LIFO-LIKE"
+        else:
+            alt = f"{topic_str} — tech and gaming analysis on LIFO-LIKE"
+
         # urls.regular에서 직접 가져오고 파라미터만 간소화
         raw_url = photo["urls"]["regular"]
         clean_url = re.sub(r'\?.*', '?w=1080&q=80', raw_url)
@@ -218,7 +226,7 @@ def fetch_unsplash_image(keyword):
             "url": clean_url,
             "alt": alt,
             "photographer_name": photo["user"]["name"],
-            "photographer_url": photo["user"]["links"]["html"] + "?utm_source=blog_bot&utm_medium=referral"
+            "photographer_url": photo["user"]["links"]["html"] + "?utm_source=lifolike&utm_medium=referral"
         }
 
     except Exception as e:
@@ -322,8 +330,10 @@ def evaluate_filter_and_summarize_oneshot(candidates):
         "3. Write a 'korean_summary' (A concise 2-3 sentence explanation in natural, professional Korean detailing what the discussion is about and why it is trending).\n"
         "4. Generate 'seo_tags' — a list of 5-7 highly specific SEO keyword tags based on the actual content (e.g. ['PlayStation', 'State of Play', 'Sony', 'PS5', 'Gaming Industry']). NO generic tags like 'gaming' or 'tech' alone. ALL tags MUST be in English only. Never use Korean or any other language for tags.\n\n"
         "CRITERIA FOR TRAFFIC SCORE:\n"
-        "- High Score (90-100): Mega-trends, industry-shifting news, controversial policies, revolutionary DIY tech/hacks, global product launches.\n"
-        "- Low Score (0-89): Normal discussions, minor Q&As, personal bug rants, weekly automated community threads, casual chats.\n\n"
+        "- High Score (90-100): Mega-trends, industry-shifting news, controversial policies, revolutionary DIY tech/hacks, global product launches. The event or news must be RECENT (within the last 7 days).\n"
+        "- Medium Score (70-84): Interesting discussions but not breaking news, or topics that are relevant but not immediately timely.\n"
+        "- Low Score (0-69): Normal discussions, minor Q&As, personal bug rants, weekly automated community threads, casual chats.\n"
+        "- FRESHNESS PENALTY: If the core news event is older than 2 weeks, deduct 20-30 points regardless of topic importance. Reddit may resurface old news; always evaluate the ORIGINAL event date, not the Reddit post date.\n\n"
         f"Candidates List (JSON Format):\n{json.dumps(input_package, ensure_ascii=False)}\n\n"
         "Output exactly in this JSON array format. No introductory text, no markdown blocks, just raw JSON:\n"
         '[{"index": 0, "score": 95, "category": "TECH: AI", "korean_summary": "요약문...", "seo_tags": ["AI", "Machine Learning", "OpenAI"]}, ...]'
@@ -373,9 +383,16 @@ def evaluate_filter_and_summarize_oneshot(candidates):
     return filtered_results
 
 
+def sanitize_title(title):
+    """제목에서 Jekyll/마크다운 렌더링을 망가뜨리는 특수문자를 제거합니다."""
+    title = re.sub(r'[|`<>]', '', title)
+    title = re.sub(r'\s+', ' ', title).strip()
+    return title
+
+
 def generate_seo_title(candidate):
     """60자 이내 SEO 최적화 제목을 자동 생성합니다."""
-    title = candidate['title']
+    title = sanitize_title(candidate['title'])
     if len(title) <= 60:
         return title
 
@@ -383,7 +400,11 @@ def generate_seo_title(candidate):
         f"Rewrite this title to be under 60 characters for Google SEO. "
         f"Keep the core topic and most important keywords. Be punchy and direct.\n"
         f"Original: {title}\n"
-        f"Output ONLY the new title, nothing else."
+        f"RULES:\n"
+        f"- Under 60 characters\n"
+        f"- FORBIDDEN: Do NOT use pipe characters (|), backticks, or any markdown syntax\n"
+        f"- FORBIDDEN: Do NOT use colons to separate date/subtitle\n"
+        f"- Output ONLY the new title, nothing else."
     )
     try:
         response = client.models.generate_content(
@@ -429,7 +450,8 @@ def generate_seo_post(candidate):
         "16. FORBIDDEN: Do NOT add any 'Source:' line or attribution at the end of the post.\n"
         "17. IMPORTANT: Present all political and policy topics from a balanced, analytical perspective. "
         "Avoid partisan language or ideological labels. Critique ideas on their merits, not their political alignment.\n"
-        "18. Output ONLY raw Markdown. No ```markdown blocks. No preamble."
+        "18. MANDATORY: Include 2-3 contextual external links to authoritative sources (official company blogs, Reuters, BBC, Ars Technica, The Verge, IGN, etc.) using natural anchor text. Do NOT link to Reddit directly.\n"
+        "19. Output ONLY raw Markdown. No ```markdown blocks. No preamble."
     )
 
     user_content = (
@@ -451,27 +473,60 @@ def generate_seo_post(candidate):
 
 
 def generate_meta_description(candidate, seo_content):
-    """포스트 첫 단락에서 SEO용 메타 디스크립션을 자동 추출합니다."""
-    clean = re.sub(r'#+ .*?\n', '', seo_content)
-    clean = re.sub(r'\*\*|__|~~|\[.*?\]\(.*?\)', '', clean)
-    clean = re.sub(r'\s+', ' ', clean).strip()
-    if len(clean) > 155:
-        clean = clean[:152] + "..."
-    return clean
+    """Gemini를 활용해 SERP 클릭률 최적화 메타 디스크립션을 생성합니다."""
+    try:
+        prompt = (
+            f"Write a compelling meta description for this blog post for Google search results.\n"
+            f"Topic: {candidate['title']}\n"
+            f"RULES:\n"
+            f"1. Exactly 120-155 characters (count carefully).\n"
+            f"2. Include the core keyword naturally in the first half.\n"
+            f"3. Create curiosity or urgency — make people WANT to click.\n"
+            f"4. Do NOT start with 'Learn', 'Discover', 'Find out', or 'In this article'.\n"
+            f"5. Write in active voice. Be direct and specific.\n"
+            f"6. FORBIDDEN: Do NOT use clickbait phrases like 'Don\'t miss', 'Click here', 'Find out more', 'You won\'t believe', 'Must read'.\n"
+            f"7. Output ONLY the meta description text, nothing else."
+        )
+        response = client.models.generate_content(
+            model=FLASH_MODEL,
+            contents=prompt,
+            config=types.GenerateContentConfig(temperature=0.5)
+        )
+        desc = response.text.strip().strip('"').strip("'")
+        if len(desc) > 160:
+            return desc[:157] + "..."
+        return desc
+    except Exception:
+        clean = re.sub(r'#+ .*?\n', '', seo_content)
+        clean = re.sub(r'\*\*|__|~~|\[.*?\]\(.*?\)', '', clean)
+        clean = re.sub(r'\s+', ' ', clean).strip()
+        if len(clean) > 155:
+            clean = clean[:152] + "..."
+        return clean
 
 
-def build_jekyll_filename(title):
+def build_jekyll_filename(seo_title):
     """Jekyll _posts/ 규격 파일명을 생성합니다: YYYY-MM-DD-slug.md"""
     today = datetime.now().strftime("%Y-%m-%d")
-    slug = title.lower()
+    slug = seo_title.lower()
     slug = re.sub(r'[^\w\s-]', '', slug)
     slug = re.sub(r'[\s_]+', '-', slug)
     slug = re.sub(r'-+', '-', slug).strip('-')
-    slug = slug[:60].rstrip('-')
-    return f"{today}-{slug}.md"
+    # URL 잘림 방지: 단어 단위로 45자 이내 제한
+    if len(slug) > 45:
+        parts = slug.split('-')
+        result = []
+        length = 0
+        for part in parts:
+            if length + len(part) + 1 > 45:
+                break
+            result.append(part)
+            length += len(part) + 1
+        slug = '-'.join(result)
+    return f"{today}-{slug}.md", slug
 
 
-def build_jekyll_front_matter(candidate, image_data, meta_description, raw_category):
+def build_jekyll_front_matter(candidate, image_data, meta_description, raw_category, seo_title):
     """Minimal Mistakes 테마 규격의 Jekyll front matter를 생성합니다."""
 
     # 카테고리별 폴백 이미지 (Unsplash 이미지 없을 때)
@@ -492,11 +547,12 @@ def build_jekyll_front_matter(candidate, image_data, meta_description, raw_categ
 
     # excerpt 내 따옴표 이스케이프
     safe_excerpt = meta_description.replace('"', "'")
-    # SEO 최적화 제목 (60자 이내)
-    seo_title = generate_seo_title(candidate)
     safe_title = seo_title.replace('"', "'")
 
-    # SEO 태그 생성 (Gemini가 생성한 태그 + 카테고리 기본 태그)
+    # slug 생성
+    _, slug = build_jekyll_filename(seo_title)
+
+    # SEO 태그 생성
     seo_tags = candidate.get('seo_tags', [])
     if raw_category not in seo_tags:
         seo_tags.insert(0, raw_category)
@@ -509,6 +565,7 @@ date: {datetime.now().strftime("%Y-%m-%d %H:%M:%S")} +0900
 categories: [{raw_category}]
 tags: [{tags_str}]
 excerpt: "{safe_excerpt}"
+permalink: /{raw_category}/{slug}/
 header:
   image: "{header_image}"
   caption: "Photo by {photographer} on Unsplash"
@@ -518,6 +575,35 @@ read_time: true
 comments: false
 share: true
 ---
+
+<script type="application/ld+json">
+{{
+  "@context": "https://schema.org",
+  "@type": "BlogPosting",
+  "headline": "{safe_title}",
+  "description": "{safe_excerpt}",
+  "image": "{header_image}",
+  "datePublished": "{datetime.now().strftime("%Y-%m-%dT%H:%M:%S")}+09:00",
+  "dateModified": "{datetime.now().strftime("%Y-%m-%dT%H:%M:%S")}+09:00",
+  "author": {{
+    "@type": "Person",
+    "name": "LIFO",
+    "url": "https://blog.lifo-like.com/about/"
+  }},
+  "publisher": {{
+    "@type": "Organization",
+    "name": "LIFO-LIKE",
+    "logo": {{
+      "@type": "ImageObject",
+      "url": "https://blog.lifo-like.com/favicon.png"
+    }}
+  }},
+  "mainEntityOfPage": {{
+    "@type": "WebPage",
+    "@id": "https://blog.lifo-like.com/{raw_category}/{slug}/"
+  }}
+}}
+</script>
 
 """
     return front_matter
@@ -539,7 +625,8 @@ def generate_threads_post(candidate, blog_url):
         f"5. Total length: under 500 characters.\n"
         f"6. NO generic phrases like 'Check out my blog' or 'I wrote about'.\n"
         f"7. Output ONLY the post text, nothing else.\n"
-        f"8. FORBIDDEN: Do NOT use any markdown formatting like **bold**, *italic*, or # headers. Plain text only."
+        f"8. FORBIDDEN: Do NOT use ANY markdown formatting. No **bold**, no *italic* (not even *single asterisks*), no # headers, no ~~strikethrough~~. Plain text ONLY.\n"
+        f"9. FORBIDDEN: Do NOT write sentences in ALL CAPS. Normal sentence case only."
     )
 
     response = client.models.generate_content(
@@ -624,8 +711,11 @@ def deploy_to_github(candidate, seo_content):
     # 메타 디스크립션 자동 생성
     meta_description = generate_meta_description(candidate, seo_content)
 
+    # SEO 제목 먼저 생성 (slug에도 사용)
+    seo_title = generate_seo_title(candidate)
+
     # Jekyll front matter 생성
-    front_matter = build_jekyll_front_matter(candidate, image_data, meta_description, raw_category)
+    front_matter = build_jekyll_front_matter(candidate, image_data, meta_description, raw_category, seo_title)
 
     # 애드센스 플레이스홀더 교체
     jekyll_content = seo_content.replace(
@@ -638,14 +728,14 @@ def deploy_to_github(candidate, seo_content):
         credit_line = (
             f"\n*Photo by [{image_data['photographer_name']}]"
             f"({image_data['photographer_url']}) on "
-            f"[Unsplash](https://unsplash.com?utm_source=blog_bot&utm_medium=referral)*\n\n"
+            f"[Unsplash](https://unsplash.com?utm_source=lifolike&utm_medium=referral)*\n\n"
         )
         final_content = front_matter + credit_line + jekyll_content
     else:
         final_content = front_matter + jekyll_content
 
-    # Jekyll 파일명 생성
-    filename = build_jekyll_filename(candidate['title'])
+    # Jekyll 파일명 생성 (SEO 제목 기반)
+    filename, slug = build_jekyll_filename(seo_title)
     github_path = f"_posts/{filename}"
 
     # ── 로컬 HTML 프리뷰 병행 생성 ──
@@ -661,7 +751,7 @@ def deploy_to_github(candidate, seo_content):
     credit_html = (
         f'<p class="photo-credit">Photo by '
         f'<a href="{image_data["photographer_url"]}" target="_blank">{image_data["photographer_name"]}</a> on '
-        f'<a href="https://unsplash.com?utm_source=blog_bot&utm_medium=referral" target="_blank">Unsplash</a></p>'
+        f'<a href="https://unsplash.com?utm_source=lifolike&utm_medium=referral" target="_blank">Unsplash</a></p>'
     ) if image_data else ""
 
     html_template = f"""<!DOCTYPE html>
