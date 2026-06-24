@@ -1,1 +1,2 @@
 [2026-06-24T16:11:53Z] [INFO] 봇 시작 — 마지막 발행: 2026-06-22 / 카테고리: tech
+[2026-06-24T16:13:29Z] [SUCCESS] 발행 완료 — 제목: White House app auto-downloads to government phone / 카테고리: tech / URL: https://blog.lifo-like.com/tech/white-house-app-forced-on-gov-phones-cant/
