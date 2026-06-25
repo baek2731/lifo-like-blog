@@ -1,1 +1,2 @@
 [2026-06-25T16:18:31Z] [INFO] 봇 시작 — 마지막 발행: 2026-06-24 / 카테고리: tech
+[2026-06-25T16:19:34Z] [SUCCESS] 발행 완료 — 제목: ‘Peppa Pig’ Causes AI Stink: Concern as Beloved Ha / 카테고리: tech / URL: https://blog.lifo-like.com/tech/peppa-pig-ai-voice-rights-for-child-actors/
