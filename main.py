@@ -12,8 +12,6 @@ from dotenv import load_dotenv
 # =====================================================================
 # ⚙️ [환경변수 로드 및 글로벌 설정]
 # =====================================================================
-# GitHub Actions 클라우드 환경: 환경변수는 GitHub Secrets에서 주입
-# 로컬 테스트: .env 파일 사용 (load_dotenv가 자동으로 처리)
 load_dotenv()
 
 AUTO_MODE = True  # 클라우드 자동 실행 모드
@@ -22,10 +20,6 @@ GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 GITHUB_TOKEN = os.getenv("GITHUB_TOKEN")
 GITHUB_REPO_NAME = os.getenv("GITHUB_REPO_NAME")
 UNSPLASH_ACCESS_KEY = os.getenv("UNSPLASH_ACCESS_KEY")
-THREADS_APP_ID = os.getenv("THREADS_APP_ID")
-THREADS_APP_SECRET = os.getenv("THREADS_APP_SECRET")
-THREADS_ACCESS_TOKEN = os.getenv("THREADS_ACCESS_TOKEN")
-THREADS_USER_ID = os.getenv("THREADS_USER_ID")
 
 TARGET_SUBREDDITS = [
     "technology",
@@ -35,7 +29,6 @@ TARGET_SUBREDDITS = [
     "games",
 ]
 
-# 클라우드 환경에서는 GitHub 저장소의 history.json을 직접 읽고 씁니다
 HISTORY_FILE = "history.json"
 OUTPUT_HTML = "sample_post.html"
 
@@ -51,7 +44,6 @@ def load_history():
         repo = g.get_repo(GITHUB_REPO_NAME)
         file = repo.get_contents("history.json")
         data = json.loads(file.decoded_content.decode('utf-8'))
-        # 구버전 리스트 형식 자동 마이그레이션
         if isinstance(data, list):
             return {"published_ids": data, "last_category": None, "last_published_date": None}
         return data
@@ -117,29 +109,6 @@ def log_to_github(message, log_type="INFO"):
         print(f"⚠️ 로그 저장 실패: {e}")
 
 
-def check_threads_token_expiry(history_data):
-    """Threads 토큰 만료 임박 시 GitHub Actions 경고를 출력합니다."""
-    last_at = history_data.get("last_published_at")
-    token_refreshed_at = history_data.get("threads_token_refreshed_at")
-
-    check_date_str = token_refreshed_at or last_at
-    if not check_date_str:
-        return
-
-    try:
-        check_date = datetime.fromisoformat(check_date_str.replace("Z", "+00:00"))
-        now_utc = datetime.now(timezone.utc)
-        days_elapsed = (now_utc - check_date).days
-
-        if days_elapsed >= 50:
-            warning = f"⚠️ [THREADS TOKEN WARNING] 토큰 발급 후 {days_elapsed}일 경과. 곧 만료됩니다. Meta Developer에서 토큰을 재발급하세요!"
-            print(warning)
-            print("::warning::" + warning)  # GitHub Actions 경고 표시
-            log_to_github(warning, "WARNING")
-    except Exception:
-        pass
-
-
 def extract_image_keyword(title):
     """포스트 제목에서 Unsplash 검색용 핵심 키워드를 추출합니다."""
     clean = re.sub(r'[^\w\s]', ' ', title)
@@ -188,16 +157,13 @@ def fetch_unsplash_image(keyword):
             return None
 
     try:
-        # 1차 시도 — 전체 키워드
         photo = _search(keyword)
 
-        # 2차 시도 — 첫 번째 키워드만
         if not photo:
             first_keyword = keyword.split()[0] if keyword.split() else keyword
             print(f"  • 재시도: '{first_keyword}' 단일 키워드로 검색 중...")
             photo = _search(first_keyword)
 
-        # 3차 시도 — 일반 기술/게임 키워드
         if not photo:
             print(f"  • 재시도: 일반 키워드로 검색 중...")
             photo = _search("technology digital")
@@ -210,7 +176,6 @@ def fetch_unsplash_image(keyword):
         if not alt or len(alt.strip()) < 5:
             alt = keyword
 
-        # alt 텍스트를 키워드 포함 서술형으로 개선
         topic_keyword = keyword.split()[:3]
         topic_str = ' '.join(topic_keyword).title()
         if alt and len(alt.strip()) >= 5:
@@ -218,7 +183,6 @@ def fetch_unsplash_image(keyword):
         else:
             alt = f"{topic_str} — tech and gaming analysis on LIFO-LIKE"
 
-        # urls.regular에서 직접 가져오고 파라미터만 간소화
         raw_url = photo["urls"]["regular"]
         clean_url = re.sub(r'\?.*', '?w=1080&q=80', raw_url)
 
@@ -236,13 +200,9 @@ def fetch_unsplash_image(keyword):
 
 def clean_reddit_title(title):
     """Reddit 제목에서 SEO에 불필요한 접두어/태그를 제거합니다."""
-    # 대괄호로 시작하는 태그 제거 (예: [MEGATHREAD], [WEEKLY], [PSA] 등)
     title = re.sub(r'^\[.*?\]\s*', '', title)
-    # 소괄호로 시작하는 태그 제거
     title = re.sub(r'^\(.*?\)\s*', '', title)
-    # 앞뒤 공백 제거
     title = title.strip()
-    # 첫 글자 대문자화
     if title:
         title = title[0].upper() + title[1:]
     return title
@@ -277,7 +237,6 @@ def fetch_global_trends(subreddits, history):
                 if post_id in history["published_ids"]:
                     continue
 
-                # ── 날짜 필터: 48시간 이내 글만 허용 ──
                 updated_tag = entry.find("updated")
                 if updated_tag:
                     try:
@@ -288,10 +247,10 @@ def fetch_global_trends(subreddits, history):
                             print(f"  • [SKIP] {hours_old:.0f}시간 전 오래된 글 제외: {raw_title[:40]}...")
                             continue
                     except Exception:
-                        pass  # 날짜 파싱 실패 시 통과 허용
+                        pass
 
                 title = entry.find("title").text if entry.find("title") else "No Title"
-                title = clean_reddit_title(title)  # Reddit 태그 제거
+                title = clean_reddit_title(title)
                 content = entry.find("content").text if entry.find("content") else ""
                 clean_content = re.sub(r'<[^>]*>', '', content).strip()
 
@@ -417,7 +376,6 @@ def generate_seo_title(candidate):
             return short_title
     except Exception:
         pass
-    # 폴백: 60자에서 자르기
     return title[:57] + "..."
 
 
@@ -484,7 +442,7 @@ def generate_meta_description(candidate, seo_content):
             f"3. Create curiosity or urgency — make people WANT to click.\n"
             f"4. Do NOT start with 'Learn', 'Discover', 'Find out', or 'In this article'.\n"
             f"5. Write in active voice. Be direct and specific.\n"
-            f"6. FORBIDDEN: Do NOT use clickbait phrases like 'Don\'t miss', 'Click here', 'Find out more', 'You won\'t believe', 'Must read'.\n"
+            f"6. FORBIDDEN: Do NOT use clickbait phrases like 'Don't miss', 'Click here', 'Find out more', 'You won't believe', 'Must read'.\n"
             f"7. Output ONLY the meta description text, nothing else."
         )
         response = client.models.generate_content(
@@ -512,7 +470,6 @@ def build_jekyll_filename(seo_title):
     slug = re.sub(r'[^\w\s-]', '', slug)
     slug = re.sub(r'[\s_]+', '-', slug)
     slug = re.sub(r'-+', '-', slug).strip('-')
-    # URL 잘림 방지: 단어 단위로 45자 이내 제한
     if len(slug) > 45:
         parts = slug.split('-')
         result = []
@@ -529,7 +486,6 @@ def build_jekyll_filename(seo_title):
 def build_jekyll_front_matter(candidate, image_data, meta_description, raw_category, seo_title):
     """Minimal Mistakes 테마 규격의 Jekyll front matter를 생성합니다."""
 
-    # 카테고리별 폴백 이미지 (Unsplash 이미지 없을 때)
     fallback_images = {
         "gaming": "https://images.unsplash.com/photo-1493711662062-fa541adb3fc8?w=1080&q=80",
         "tech": "https://images.unsplash.com/photo-1518770660439-4636190af475?w=1080&q=80",
@@ -545,14 +501,11 @@ def build_jekyll_front_matter(candidate, image_data, meta_description, raw_categ
         header_image = fallback_images.get(raw_category, "https://images.unsplash.com/photo-1518770660439-4636190af475?w=1080&q=80")
         photographer = "Unsplash"
 
-    # excerpt 내 따옴표 이스케이프
     safe_excerpt = meta_description.replace('"', "'")
     safe_title = seo_title.replace('"', "'")
 
-    # slug 생성
     _, slug = build_jekyll_filename(seo_title)
 
-    # SEO 태그 생성
     seo_tags = candidate.get('seo_tags', [])
     if raw_category not in seo_tags:
         seo_tags.insert(0, raw_category)
@@ -609,97 +562,11 @@ share: true
     return front_matter
 
 
-def generate_threads_post(candidate, blog_url):
-    """Gemini를 활용해 Threads용 임팩트 있는 영문 포스트를 자동 생성합니다."""
-    prompt = (
-        f"You are a sharp, witty tech/gaming commentator on Threads (like Twitter).\n"
-        f"Based on this topic, write a Threads post that makes people WANT to click the link.\n\n"
-        f"Topic: {candidate['title']}\n"
-        f"Context: {candidate['content'][:300]}\n"
-        f"Blog URL: {blog_url}\n\n"
-        f"RULES:\n"
-        f"1. Start with a bold, provocative 1-2 sentence hook about the topic itself (NOT about the blog).\n"
-        f"2. Add 3 punchy bullet points (→) with the most interesting facts or arguments.\n"
-        f"3. End with: 'Full breakdown 👉 {blog_url}'\n"
-        f"4. Add 4-5 relevant hashtags based on the topic content (e.g. #Fortnite #UKPolicy #Gaming).\n"
-        f"5. Total length: under 500 characters.\n"
-        f"6. NO generic phrases like 'Check out my blog' or 'I wrote about'.\n"
-        f"7. Output ONLY the post text, nothing else.\n"
-        f"8. FORBIDDEN: Do NOT use ANY markdown formatting. No **bold**, no *italic* (not even *single asterisks*), no # headers, no ~~strikethrough~~. Plain text ONLY.\n"
-        f"9. FORBIDDEN: Do NOT write sentences in ALL CAPS. Normal sentence case only."
-    )
-
-    response = client.models.generate_content(
-        model=FLASH_MODEL,
-        contents=prompt,
-        config=types.GenerateContentConfig(temperature=0.85)
-    )
-
-    return response.text.strip()
-
-
-def post_to_threads(candidate, blog_url):
-    """Threads API를 통해 Gemini가 생성한 임팩트 포스트를 자동 발행합니다."""
-    print("\n📱 Threads 자동 포스팅 시작...")
-
-    try:
-        # Gemini로 Threads 포스트 생성
-        print("  • Gemini로 Threads 포스트 생성 중...")
-        thread_text = generate_threads_post(candidate, blog_url)
-        print(f"  • 생성된 포스트:\n{thread_text}\n")
-
-        # 토큰 유효성 체크 (자동 갱신 없음 — 만료 시 수동 갱신 필요)
-        token = THREADS_ACCESS_TOKEN
-        check_url = f"https://graph.threads.net/v1.0/me?fields=id&access_token={token}"
-        check_res = requests.get(check_url, timeout=10)
-        if check_res.status_code != 200:
-            print("  • ⚠️ [토큰 만료] Threads 액세스 토큰이 만료되었습니다.")
-            print("  • ⚠️ GitHub Secrets > THREADS_ACCESS_TOKEN을 수동으로 갱신해 주세요.")
-            print("  • ⚠️ 갱신 방법: developers.facebook.com → 앱 선택 → Threads API → Access Tokens")
-            return
-
-        # Step 1 — 미디어 컨테이너 생성 (APP_ID 대신 USER_ID 사용)
-        container_url = f"https://graph.threads.net/v1.0/{THREADS_USER_ID}/threads"
-        container_payload = {
-            "media_type": "TEXT",
-            "text": thread_text,
-            "access_token": token
-        }
-        container_res = requests.post(container_url, data=container_payload, timeout=15)
-        container_data = container_res.json()
-
-        if "id" not in container_data:
-            print(f"⚠️ Threads 컨테이너 생성 실패: {container_data}")
-            return
-
-        container_id = container_data["id"]
-        print(f"  • 컨테이너 생성 완료: {container_id}")
-
-        # Step 2 — 게시물 발행
-        publish_url = f"https://graph.threads.net/v1.0/{THREADS_USER_ID}/threads_publish"
-        publish_payload = {
-            "creation_id": container_id,
-            "access_token": token
-        }
-        publish_res = requests.post(publish_url, data=publish_payload, timeout=15)
-        publish_data = publish_res.json()
-
-        if "id" in publish_data:
-            print(f"✅ Threads 포스팅 완료! ID: {publish_data['id']}")
-        else:
-            print(f"⚠️ Threads 발행 실패: {publish_data}")
-
-    except Exception as e:
-        print(f"⚠️ Threads 포스팅 오류: {e}")
-
-
 def deploy_to_github(candidate, seo_content):
     """GitHub _posts/ 폴더에 Jekyll 규격 마크다운 파일을 자동 커밋합니다."""
 
-    # 카테고리 변환 (전체 함수에서 공유)
     raw_category = candidate['assigned_category'].split(':')[0].strip().lower()
 
-    # 핵심 키워드 추출 및 Unsplash 이미지 검색
     image_keyword = extract_image_keyword(candidate['title'])
     image_data = fetch_unsplash_image(image_keyword)
 
@@ -708,22 +575,17 @@ def deploy_to_github(candidate, seo_content):
     else:
         print("⚠️ 폴백 이미지로 대체합니다.")
 
-    # 메타 디스크립션 자동 생성
     meta_description = generate_meta_description(candidate, seo_content)
 
-    # SEO 제목 먼저 생성 (slug에도 사용)
     seo_title = generate_seo_title(candidate)
 
-    # Jekyll front matter 생성
     front_matter = build_jekyll_front_matter(candidate, image_data, meta_description, raw_category, seo_title)
 
-    # 애드센스 플레이스홀더 교체
     jekyll_content = seo_content.replace(
         "[!-- ADSENSE_MIDDLE_PLACEHOLDER --]",
         "<!-- ADSENSE_MIDDLE_PLACEHOLDER -->"
     )
 
-    # 촬영자 크레딧 본문 최상단 삽입
     if image_data:
         credit_line = (
             f"\n*Photo by [{image_data['photographer_name']}]"
@@ -734,11 +596,9 @@ def deploy_to_github(candidate, seo_content):
     else:
         final_content = front_matter + jekyll_content
 
-    # Jekyll 파일명 생성 (SEO 제목 기반)
     filename, slug = build_jekyll_filename(seo_title)
     github_path = f"_posts/{filename}"
 
-    # ── 로컬 HTML 프리뷰 병행 생성 ──
     import markdown
     html_body = markdown.markdown(jekyll_content, extensions=['tables', 'fenced_code'])
     html_body = html_body.replace(
@@ -793,7 +653,6 @@ def deploy_to_github(candidate, seo_content):
         f.write(html_template)
     print(f"📂 로컬 HTML 프리뷰 생성 완료: {OUTPUT_HTML}")
 
-    # ── GitHub 실제 배포 ──
     print(f"\n🚀 GitHub 배포 시작: {github_path}")
     try:
         auth = Auth.Token(GITHUB_TOKEN)
@@ -836,15 +695,11 @@ if __name__ == "__main__":
     print("🔥 [INTELLIGENCE GLOBAL GEMINI BOT v4] 가동 시작")
     print("======================================================================\n")
 
-    # ── 하루 1회 발행 안전장치 (UTC 기준) ──
     history = load_history()
     now_utc = datetime.now(timezone.utc)
     today = now_utc.strftime("%Y-%m-%d")
     now_utc_str = now_utc.strftime("%Y-%m-%dT%H:%M:%SZ")
     last_published_date = history.get("last_published_date")
-
-    # ── Threads 토큰 만료 체크 ──
-    check_threads_token_expiry(history)
 
     if last_published_date == today:
         msg = f"오늘({today}) 이미 발행 완료. API 중복 호출 방지를 위해 종료합니다."
@@ -950,12 +805,9 @@ if __name__ == "__main__":
         seo_article = generate_seo_post(selected_post)
         slug = deploy_to_github(selected_post, seo_article)
 
-        # Threads 자동 포스팅
         raw_category = selected_post['assigned_category'].split(':')[0].strip().lower()
         blog_url = f"https://blog.lifo-like.com/{raw_category}/{slug}/"
-        post_to_threads(selected_post, blog_url)
 
-        # history 업데이트 (UTC 기준)
         history["published_ids"].append(selected_post['id'])
         history["last_category"] = raw_category
         history["last_published_date"] = today
