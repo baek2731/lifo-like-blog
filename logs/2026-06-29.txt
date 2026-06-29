@@ -1,1 +1,2 @@
 [2026-06-29T01:19:40Z] [INFO] 봇 시작 — 마지막 발행: 2026-06-25 / 카테고리: tech
+[2026-06-29T01:20:20Z] [SUCCESS] 발행 완료 — 제목: Ford rehires ‘gray beard’ engineers after AI falls / 카테고리: tech / URL: https://blog.lifo-like.com/tech/ford-rehires-gray-beard-engineers-after-ai/
