@@ -1,1 +1,2 @@
 [2026-07-01T16:21:22Z] [INFO] 봇 시작 — 마지막 발행: 2026-06-30 / 카테고리: tech
+[2026-07-01T16:22:12Z] [SUCCESS] 발행 완료 — 제목: Sony Just Killed Discs: Physical Disc Production t / 카테고리: gaming / URL: https://blog.lifo-like.com/gaming/sony-kills-playstation-discs-jan-2028/
