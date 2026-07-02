@@ -50,4 +50,8 @@ tag_archive:
   path: /tags/
 search: false
 logo: "/favicon.png"
-google_analytics: "G-5XCQYLVDQY"
+analytics:
+  provider: "google-gtag"
+  google:
+    tracking_id: "G-5XCQYLVDQY"
+    anonymize_ip: false
