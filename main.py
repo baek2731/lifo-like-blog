@@ -589,21 +589,38 @@ def generate_seo_title(candidate):
             model=FLASH_MODEL,
             contents=prompt,
             config=types.GenerateContentConfig(
-                system_instruction="You are a concise blog title writer. Output only plain title text. No markdown. No surrounding quotes. No explanation.",
+                system_instruction="You are a concise blog title writer. Output only plain title text on a single line. No markdown. No surrounding quotes. No explanation.",
                 temperature=0.3,
-                max_output_tokens=80
+                max_output_tokens=512,  # thinking 토큰 여유 확보 (2.5 Flash는 추론 토큰 소모)
+                thinking_config=types.ThinkingConfig(thinking_budget=0)  # 제목 생성은 추론 불필요 → 끔
             )
         )
-        new_title = response.text.strip()
-        # 마크다운/따옴표 잔재 제거
+        new_title = (response.text or "").strip()
+        # 마크다운/따옴표 잔재 제거 (양끝 래핑 따옴표만, 내부 아포스트로피 보존)
         new_title = re.sub(r'[\*\_`#]', '', new_title).strip()
-        new_title = new_title.strip('"').strip("'").strip()
-        if new_title and 5 <= len(new_title) <= 70:
+        new_title = new_title.strip('"').strip()
+        # 앞뒤를 감싼 작은따옴표만 제거 (Sony's의 아포스트로피는 보존)
+        if len(new_title) >= 2 and new_title[0] == "'" and new_title[-1] == "'":
+            new_title = new_title[1:-1].strip()
+        # [FIX] 잘린 제목 감지 — 단어 2개 미만이거나 아포스트로피/전치사로 끝나면 폐기
+        words = new_title.split()
+        looks_truncated = (
+            len(words) < 3 or
+            new_title.endswith("'s") or
+            new_title.endswith("'") or
+            words[-1].lower() in {"the", "a", "an", "of", "to", "and", "for", "on", "in", "with"}
+        )
+        if new_title and 5 <= len(new_title) <= 70 and not looks_truncated:
             return new_title
-    except Exception:
-        pass
-    # 폴백: 원본 제목 60자 제한
-    return original_title if len(original_title) <= 60 else original_title[:57] + "..."
+        if looks_truncated:
+            print(f"  ⚠️ 제목이 잘린 것으로 보임('{new_title}') → 원본 제목으로 폴백")
+    except Exception as e:
+        print(f"  ⚠️ 제목 생성 실패: {e} → 원본 제목으로 폴백")
+    # 폴백: 원본 제목 정제 후 60자 제한
+    fb = re.sub(r'[\*\_`#]', '', original_title).replace('"', '').strip()
+    # 원본이 따옴표로 시작하는 인용형 헤드라인이면 인용부호 제거
+    fb = re.sub(r'^["\']', '', fb).strip()
+    return fb if len(fb) <= 60 else fb[:57].rstrip() + "..."
 
 
 def generate_seo_post(candidate):
