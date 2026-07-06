@@ -38,6 +38,10 @@ OUTPUT_HTML = "sample_post.html"
 client = genai.Client(api_key=GEMINI_API_KEY)
 FLASH_MODEL = 'gemini-2.5-flash'
 
+# [FIX] RSS 제목을 그대로 쓰면 내용과 미스매치 발생 — 제목은 항상 내용 기반으로 재생성
+# [FIX] 글 잘림 방지 — generate_seo_post()에 max_output_tokens=8192 추가
+# [FIX] "Where to preorder" 같은 쇼핑성 RSS 제목 필터링 추가
+
 
 def load_history():
     """GitHub 저장소에서 history.json을 로드합니다."""
@@ -111,7 +115,6 @@ def log_to_github(message, log_type="INFO"):
             )
     except Exception as e:
         print(f"⚠️ 로그 저장 실패: {e}")
-
 
 
 def extract_image_keyword(title):
@@ -214,6 +217,24 @@ def clean_reddit_title(title):
     return title
 
 
+# [FIX] 쇼핑/가이드성 RSS 제목 필터링 — 내용과 미스매치 방지
+TITLE_BLOCKLIST_PREFIXES = [
+    "where to preorder",
+    "where to buy",
+    "best deals",
+    "how to get",
+    "review:",
+    "hands on:",
+    "hands-on:",
+    "giveaway:",
+]
+
+def is_blocked_title(title):
+    """쇼핑/가이드성 제목 필터링."""
+    t = title.lower().strip()
+    return any(t.startswith(prefix) for prefix in TITLE_BLOCKLIST_PREFIXES)
+
+
 NEWS_RSS_SOURCES = [
     {"url": "https://feeds.arstechnica.com/arstechnica/index", "category": "tech"},
     {"url": "https://www.theverge.com/rss/index.xml", "category": "tech"},
@@ -246,6 +267,11 @@ def fetch_news_rss(history):
                 title_tag = item.find("title")
                 title = title_tag.text.strip() if title_tag else ""
                 if not title:
+                    continue
+
+                # [FIX] 쇼핑/가이드성 제목 필터링
+                if is_blocked_title(title):
+                    print(f"  • [SKIP] 쇼핑/가이드 제목 필터링: {title[:50]}")
                     continue
 
                 link_tag = item.find("link")
@@ -478,30 +504,36 @@ def evaluate_filter_and_summarize_oneshot(candidates):
 
 
 def generate_seo_title(candidate):
-    """60자 이내 SEO 최적화 제목을 자동 생성합니다."""
-    title = candidate['title']
-    if len(title) <= 60:
-        return title
-
+    """RSS/Reddit 원본 제목을 블로그용 SEO 제목으로 재생성합니다. 항상 내용 기반으로 새로 만듭니다."""
+    # [FIX] 원본 제목을 그대로 쓰지 않고 내용 기반으로 항상 재생성
     prompt = (
-        f"Rewrite this title to be under 60 characters for Google SEO. "
-        f"Keep the core topic and most important keywords. Be punchy and direct.\n"
-        f"Original: {title}\n"
-        f"Output ONLY the new title, nothing else."
+        f"You are an SEO expert. Rewrite the following news headline into a punchy, engaging blog post title.\n"
+        f"RULES:\n"
+        f"- Under 60 characters\n"
+        f"- Must reflect the ACTUAL TOPIC of the article (analysis, opinion, implications) — NOT a shopping guide or 'how to' unless the article is literally that\n"
+        f"- Be bold and opinionated, not neutral\n"
+        f"- No clickbait, no 'You Won't Believe' style\n"
+        f"- Output ONLY the new title, nothing else\n\n"
+        f"Original headline: {candidate['title']}\n"
+        f"Article context: {candidate.get('content', '')[:300]}"
     )
     try:
         response = client.models.generate_content(
             model=FLASH_MODEL,
             contents=prompt,
-            config=types.GenerateContentConfig(temperature=0.3)
+            config=types.GenerateContentConfig(
+                temperature=0.4,
+                max_output_tokens=100  # 제목은 짧으니 100으로 충분
+            )
         )
-        short_title = response.text.strip().strip('"').strip("'")
-        if len(short_title) <= 60:
-            return short_title
+        new_title = response.text.strip().strip('"').strip("'")
+        if new_title and len(new_title) <= 70:
+            return new_title
     except Exception:
         pass
-    # 폴백: 60자에서 자르기
-    return title[:57] + "..."
+    # 폴백: 원본 제목 60자 제한
+    title = candidate['title']
+    return title if len(title) <= 60 else title[:57] + "..."
 
 
 def generate_seo_post(candidate):
@@ -535,7 +567,8 @@ def generate_seo_post(candidate):
         "Avoid partisan language or ideological labels. Critique ideas on their merits, not their political alignment.\n"
         "18. EXTERNAL LINKS — ONLY IF CERTAIN: If you know a real, verified URL to an authoritative source, include 1-3 links using this format: [anchor text](https://real-url.com). CRITICAL: NEVER fabricate or guess a URL. If the news source URL is provided in the context, you MAY use it directly — that URL is real. Otherwise, only link if 100% certain.\n"
         "19. CRITICAL — NO HALLUCINATION: Do NOT invent, fabricate, or hallucinate ANY specific facts. This includes: product names, game titles, company names, statistics, quotes, event details, or announcements. If the provided context lacks specific details, write in general terms only. NEVER fill gaps with made-up specifics. Every concrete claim must be directly supported by the provided context.\n"
-        "20. Output ONLY raw Markdown. No ```markdown blocks. No preamble."
+        "20. Output ONLY raw Markdown. No ```markdown blocks. No preamble.\n"
+        "21. CRITICAL — WRITE THE FULL ARTICLE: Do not stop mid-sentence or mid-section. Every ## heading must have complete body text. The article must be finished in its entirety before you stop."
     )
 
     source_type = candidate.get("source", "reddit")
@@ -557,12 +590,14 @@ def generate_seo_post(candidate):
             f"Raw community context:\n{candidate['content']}"
         )
 
+    # [FIX] max_output_tokens=8192 추가 — 글 잘림 방지 핵심 수정
     response = client.models.generate_content(
         model=FLASH_MODEL,
         contents=user_content,
         config=types.GenerateContentConfig(
             system_instruction=system_instruction,
-            temperature=0.85
+            temperature=0.85,
+            max_output_tokens=8192
         )
     )
 
@@ -590,7 +625,7 @@ def build_jekyll_filename(title):
     return f"{today}-{slug}.md"
 
 
-def build_jekyll_front_matter(candidate, image_data, meta_description, raw_category):
+def build_jekyll_front_matter(candidate, image_data, meta_description, raw_category, seo_title):
     """Minimal Mistakes 테마 규격의 Jekyll front matter를 생성합니다."""
 
     # 카테고리별 폴백 이미지 (Unsplash 이미지 없을 때)
@@ -611,8 +646,6 @@ def build_jekyll_front_matter(candidate, image_data, meta_description, raw_categ
 
     # excerpt 내 따옴표 이스케이프
     safe_excerpt = meta_description.replace('"', "'")
-    # SEO 최적화 제목 (60자 이내)
-    seo_title = generate_seo_title(candidate)
     safe_title = seo_title.replace('"', "'")
 
     # SEO 태그 생성 (Gemini가 생성한 태그 + 카테고리 기본 태그)
@@ -642,16 +675,18 @@ share: true
     return front_matter
 
 
-
-
 def deploy_to_github(candidate, seo_content):
     """GitHub _posts/ 폴더에 Jekyll 규격 마크다운 파일을 자동 커밋합니다."""
 
     # 카테고리 변환 (전체 함수에서 공유)
     raw_category = candidate['assigned_category'].split(':')[0].strip().lower()
 
+    # [FIX] SEO 제목을 배포 전에 미리 생성 (파일명 + front matter 모두에 사용)
+    seo_title = generate_seo_title(candidate)
+    print(f"📝 생성된 SEO 제목: {seo_title}")
+
     # 핵심 키워드 추출 및 Unsplash 이미지 검색
-    image_keyword = extract_image_keyword(candidate['title'])
+    image_keyword = extract_image_keyword(seo_title)
     image_data = fetch_unsplash_image(image_keyword)
 
     if image_data:
@@ -662,8 +697,8 @@ def deploy_to_github(candidate, seo_content):
     # 메타 디스크립션 자동 생성
     meta_description = generate_meta_description(candidate, seo_content)
 
-    # Jekyll front matter 생성
-    front_matter = build_jekyll_front_matter(candidate, image_data, meta_description, raw_category)
+    # Jekyll front matter 생성 — seo_title 전달
+    front_matter = build_jekyll_front_matter(candidate, image_data, meta_description, raw_category, seo_title)
 
     # 애드센스 플레이스홀더 교체
     jekyll_content = seo_content.replace(
@@ -682,8 +717,8 @@ def deploy_to_github(candidate, seo_content):
     else:
         final_content = front_matter + jekyll_content
 
-    # Jekyll 파일명 생성
-    filename = build_jekyll_filename(candidate['title'])
+    # [FIX] 파일명도 SEO 제목 기반으로 생성 (RSS 원본 제목 아님)
+    filename = build_jekyll_filename(seo_title)
     github_path = f"_posts/{filename}"
     slug = re.sub(r'^\d{4}-\d{2}-\d{2}-', '', filename).replace('.md', '')
 
@@ -708,7 +743,7 @@ def deploy_to_github(candidate, seo_content):
 <head>
     <meta charset="utf-8">
     <meta name="description" content="{meta_description}">
-    <title>[PREVIEW] {candidate['title']}</title>
+    <title>[PREVIEW] {seo_title}</title>
     <style>
         body {{ font-family: 'Malgun Gothic', sans-serif; line-height: 1.7; padding: 40px; background: #f9f9f9; color: #333; }}
         .container {{ max-width: 700px; margin: 0 auto; background: #fff; padding: 30px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); }}
@@ -730,7 +765,7 @@ def deploy_to_github(candidate, seo_content):
 <body>
     <div class="container">
         <div class="meta">Category: r/{candidate['subreddit']} | Traffic Score: {candidate.get('traffic_score', 0)}pts | Preview Time: {datetime.now().strftime("%Y-%m-%d %H:%M")}</div>
-        <h1>{candidate['title']}</h1>
+        <h1>{seo_title}</h1>
         <img class="main-img" src="{image_url}" alt="{image_alt}">
         {credit_html}
         {html_body}
@@ -748,7 +783,7 @@ def deploy_to_github(candidate, seo_content):
         auth = Auth.Token(GITHUB_TOKEN)
         g = Github(auth=auth)
         repo = g.get_repo(GITHUB_REPO_NAME)
-        commit_message = f"feat: add post - {candidate['title'][:60]}"
+        commit_message = f"feat: add post - {seo_title[:60]}"
 
         try:
             existing = repo.get_contents(github_path)
