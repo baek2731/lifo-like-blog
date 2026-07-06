@@ -12,3 +12,4 @@
 [2026-07-06T11:43:32Z] [INFO] 봇 시작 — 마지막 발행: 없음 / 카테고리: 없음
 [2026-07-06T11:44:42Z] [SUCCESS] 발행 완료 — 제목: "This is all about control" - industry experts spe / 카테고리: gaming / URL: https://blog.lifo-like.com/gaming/sonys/
 [2026-07-06T14:19:36Z] [INFO] 봇 시작 — 마지막 발행: 없음 / 카테고리: 없음
+[2026-07-06T14:21:01Z] [SUCCESS] 발행 완료 — 제목: Microsoft is selling off four Xbox studios as part / 카테고리: gaming / URL: https://blog.lifo-like.com/gaming/xboxs-bloody-monday-studios-spun-off-jobs-cut/
