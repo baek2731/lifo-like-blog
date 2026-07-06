@@ -8,3 +8,4 @@
 [2026-07-06T11:24:37Z] [INFO] 봇 시작 — 마지막 발행: 없음 / 카테고리: 없음
 [2026-07-06T11:25:53Z] [SUCCESS] 발행 완료 — 제목: "This is all about control" - industry experts spe / 카테고리: gaming / URL: https://blog.lifo-like.com/gaming/sonys/
 [2026-07-06T11:30:47Z] [INFO] 봇 시작 — 마지막 발행: 없음 / 카테고리: 없음
+[2026-07-06T11:32:02Z] [SUCCESS] 발행 완료 — 제목: "This is all about control" - industry experts spe / 카테고리: gaming / URL: https://blog.lifo-like.com/gaming/sonys-digital-future/
