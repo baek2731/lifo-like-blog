@@ -266,7 +266,7 @@ def fetch_global_trends(subreddits, history):
                     "subreddit": sub,
                     "title": title,
                     "link": link,
-                    "content": clean_content[:1000]
+                    "content": clean_content[:2000]
                 })
         except Exception as e:
             print(f"⚠️ r/{sub} 데이터 로드 중 일시적 지연 발생: {e}")
@@ -403,13 +403,14 @@ def generate_seo_post(candidate):
         "16. FORBIDDEN: Do NOT add any 'Source:' line or attribution at the end of the post.\n"
         "17. IMPORTANT: Present all political and policy topics from a balanced, analytical perspective. "
         "Avoid partisan language or ideological labels. Critique ideas on their merits, not their political alignment.\n"
-        "18. MANDATORY EXTERNAL LINKS: You MUST include 2-3 actual clickable hyperlinks to authoritative sources. "
-        "Use this EXACT markdown format: [descriptive anchor text](https://actual-url.com). "
-        "DO NOT just mention a source by name without a URL. The link must be a real, specific article URL. "
-        "Good example: [Ars Technica's investigation into Ford's AI rollback](https://arstechnica.com/cars/2024/ford-ai-engineers) "
-        "Bad example: 'According to Ars Technica' (no link). "
-        "Acceptable sources: Reuters, BBC, The Verge, Ars Technica, IGN, Eurogamer, TechCrunch, Wired, The Guardian, official company blogs/press releases.\n"
-        "19. Output ONLY raw Markdown. No ```markdown blocks. No preamble."
+        "18. EXTERNAL LINKS — ONLY IF CERTAIN: If you know a real, verified URL to an authoritative source (Reuters, BBC, The Verge, Ars Technica, IGN, TechCrunch, Wired, The Guardian, official company blogs), include 1-3 links using this format: [anchor text](https://real-url.com). "
+        "CRITICAL: NEVER fabricate or guess a URL. If you are not 100% certain the URL exists and is correct, DO NOT include it. It is far better to mention a source by name without a link than to invent a URL. "
+        "Wrong: [Ars Technica](https://arstechnica.com/made-up-article). Right: According to Ars Technica's reporting on this issue... OR [Ars Technica](https://arstechnica.com/gadgets/2024/ford-ai-rollback/) only if you are certain this URL is real.\n"
+        "19. CRITICAL — NO HALLUCINATION: Do NOT invent, fabricate, or hallucinate ANY specific facts. "
+        "This includes: product names, game titles, company names, statistics, quotes, event details, or announcements. "
+        "If the provided context lacks specific details, write in general terms only. "
+        "NEVER fill gaps with made-up specifics. Every concrete claim must be directly supported by the provided community context.\n"
+        "20. Output ONLY raw Markdown. No ```markdown blocks. No preamble."
     )
 
     user_content = (
@@ -629,10 +630,12 @@ def deploy_to_github(candidate, seo_content):
 
         print(f"\n🎉 GitHub Pages 배포 완료!")
         print(f"🌐 약 1~2분 후 확인: https://blog.lifo-like.com/{raw_category}/")
+        return raw_category, slug
 
     except Exception as e:
         print(f"⚠️ GitHub 배포 실패: {e}")
         print("   로컬 HTML 프리뷰는 정상 생성되었습니다.")
+        return raw_category, slug
 
 
 # =====================================================================
@@ -649,8 +652,6 @@ if __name__ == "__main__":
     today = now_utc.strftime("%Y-%m-%d")
     now_utc_str = now_utc.strftime("%Y-%m-%dT%H:%M:%SZ")
     last_published_date = history.get("last_published_date")
-
-    # ── Threads 토큰 만료 체크 ──
 
     if last_published_date == today:
         msg = f"오늘({today}) 이미 발행 완료. API 중복 호출 방지를 위해 종료합니다."
@@ -754,7 +755,8 @@ if __name__ == "__main__":
         print(f"\n🎯 최종 선택된 주제: {selected_post['title']}")
 
         seo_article = generate_seo_post(selected_post)
-        deploy_to_github(selected_post, seo_article)
+        raw_category, slug = deploy_to_github(selected_post, seo_article)
+        blog_url = f"https://blog.lifo-like.com/{raw_category}/{slug}/"
 
         # history 업데이트 (UTC 기준)
         history["published_ids"].append(selected_post['id'])
