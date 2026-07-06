@@ -403,13 +403,8 @@ def generate_seo_post(candidate):
         "16. FORBIDDEN: Do NOT add any 'Source:' line or attribution at the end of the post.\n"
         "17. IMPORTANT: Present all political and policy topics from a balanced, analytical perspective. "
         "Avoid partisan language or ideological labels. Critique ideas on their merits, not their political alignment.\n"
-        "18. EXTERNAL LINKS — ONLY IF CERTAIN: If you know a real, verified URL to an authoritative source (Reuters, BBC, The Verge, Ars Technica, IGN, TechCrunch, Wired, The Guardian, official company blogs), include 1-3 links using this format: [anchor text](https://real-url.com). "
-        "CRITICAL: NEVER fabricate or guess a URL. If you are not 100% certain the URL exists and is correct, DO NOT include it. It is far better to mention a source by name without a link than to invent a URL. "
-        "Wrong: [Ars Technica](https://arstechnica.com/made-up-article). Right: According to Ars Technica's reporting on this issue... OR [Ars Technica](https://arstechnica.com/gadgets/2024/ford-ai-rollback/) only if you are certain this URL is real.\n"
-        "19. CRITICAL — NO HALLUCINATION: Do NOT invent, fabricate, or hallucinate ANY specific facts. "
-        "This includes: product names, game titles, company names, statistics, quotes, event details, or announcements. "
-        "If the provided context lacks specific details, write in general terms only. "
-        "NEVER fill gaps with made-up specifics. Every concrete claim must be directly supported by the provided community context.\n"
+        "18. EXTERNAL LINKS — ONLY IF CERTAIN: If you know a real, verified URL to an authoritative source (Reuters, BBC, The Verge, Ars Technica, IGN, TechCrunch, Wired, The Guardian, official company blogs), include 1-3 links using this format: [anchor text](https://real-url.com). CRITICAL: NEVER fabricate or guess a URL. If you are not 100% certain the URL exists and is correct, DO NOT include it. It is far better to mention a source by name without a link than to invent a URL.\n"
+        "19. CRITICAL — NO HALLUCINATION: Do NOT invent, fabricate, or hallucinate ANY specific facts. This includes: product names, game titles, company names, statistics, quotes, event details, or announcements. If the provided context lacks specific details, write in general terms only. NEVER fill gaps with made-up specifics. Every concrete claim must be directly supported by the provided community context.\n"
         "20. Output ONLY raw Markdown. No ```markdown blocks. No preamble."
     )
 
@@ -547,6 +542,7 @@ def deploy_to_github(candidate, seo_content):
     # Jekyll 파일명 생성
     filename = build_jekyll_filename(candidate['title'])
     github_path = f"_posts/{filename}"
+    slug = re.sub(r'^\d{4}-\d{2}-\d{2}-', '', filename).replace('.md', '')
 
     # ── 로컬 HTML 프리뷰 병행 생성 ──
     import markdown
@@ -652,6 +648,8 @@ if __name__ == "__main__":
     today = now_utc.strftime("%Y-%m-%d")
     now_utc_str = now_utc.strftime("%Y-%m-%dT%H:%M:%SZ")
     last_published_date = history.get("last_published_date")
+
+    # ── Threads 토큰 만료 체크 ──
 
     if last_published_date == today:
         msg = f"오늘({today}) 이미 발행 완료. API 중복 호출 방지를 위해 종료합니다."
