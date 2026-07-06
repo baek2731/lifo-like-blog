@@ -53,10 +53,15 @@ def load_history():
         data = json.loads(file.decoded_content.decode('utf-8'))
         # 구버전 리스트 형식 자동 마이그레이션
         if isinstance(data, list):
-            return {"published_ids": data, "last_category": None, "last_published_date": None}
+            data = {"published_ids": data, "last_category": None, "last_published_date": None}
+        # 필수 키 보장 (없으면 기본값 채움) — 구버전 dict 마이그레이션
+        data.setdefault("published_ids", [])
+        data.setdefault("published_titles", [])   # 뉴스RSS 토픽 중복방지용
+        data.setdefault("last_category", None)
+        data.setdefault("last_published_date", None)
         return data
     except Exception:
-        return {"published_ids": [], "last_category": None, "last_published_date": None}
+        return {"published_ids": [], "published_titles": [], "last_category": None, "last_published_date": None}
 
 
 def save_history(history_data):
@@ -235,6 +240,42 @@ def is_blocked_title(title):
     return any(t.startswith(prefix) for prefix in TITLE_BLOCKLIST_PREFIXES)
 
 
+# [FIX] 토픽 유사도 중복 방지용 불용어 (흔한 단어 + 숫자류는 카운트 제외)
+TOPIC_STOPWORDS = {
+    'the', 'a', 'an', 'is', 'are', 'was', 'were', 'be', 'been', 'to', 'of',
+    'in', 'for', 'on', 'with', 'at', 'by', 'from', 'and', 'or', 'but', 'as',
+    'it', 'its', 'this', 'that', 'new', 'now', 'will', 'has', 'have', 'game',
+    'games', 'gaming', 'tech', 'update', 'news', 'launch', 'release', 'first',
+    'more', 'get', 'gets', 'how', 'why', 'what', 'when', 'you', 'your',
+}
+
+def _topic_keywords(title):
+    """제목에서 중복 판정용 핵심 키워드 집합을 추출합니다. 숫자/불용어/2글자 이하 제외."""
+    words = re.sub(r'[^\w\s]', ' ', title.lower()).split()
+    keywords = set()
+    for w in words:
+        if w in TOPIC_STOPWORDS:
+            continue
+        if len(w) <= 2:          # 2글자 이하 제외 (vi, 2, ai 등 애매한 것 제거)
+            continue
+        if w.isdigit():          # 순수 숫자 제외 (2028, 6 등)
+            continue
+        keywords.add(w)
+    return keywords
+
+def is_duplicate_topic(title, published_titles, threshold=3):
+    """이미 발행된 제목들과 핵심 키워드가 threshold개 이상 겹치면 중복으로 판정합니다."""
+    current = _topic_keywords(title)
+    if len(current) < threshold:  # 키워드가 너무 적으면 판정 보류 (오탐 방지)
+        return False
+    for past in published_titles:
+        past_kw = _topic_keywords(past)
+        overlap = current & past_kw
+        if len(overlap) >= threshold:
+            return True
+    return False
+
+
 NEWS_RSS_SOURCES = [
     {"url": "https://feeds.arstechnica.com/arstechnica/index", "category": "tech"},
     {"url": "https://www.theverge.com/rss/index.xml", "category": "tech"},
@@ -401,12 +442,27 @@ def fetch_global_trends(subreddits, history):
     # 뉴스 RSS 기사를 candidate 형식으로 변환 + Reddit 컨텍스트 결합
     candidates = []
     used_titles = set()
+    published_ids = history.get("published_ids", [])
+    published_titles = history.get("published_titles", [])
 
     for news in news_items:
         title_key = news["title"][:40].lower()
-        if title_key in used_titles:
+        if title_key in used_titles:   # 같은 실행 내 동일 기사 중복
             continue
         used_titles.add(title_key)
+
+        # [FIX] URL 기반 고유 ID — 해시 충돌 제거
+        news_id = f"news_{news['link']}"
+
+        # [FIX] 이전에 발행한 뉴스 URL이면 스킵
+        if news_id in published_ids:
+            print(f"  • [DUP] 이미 발행된 뉴스 URL: {news['title'][:40]}")
+            continue
+
+        # [FIX] 같은 토픽(키워드 3개 이상 겹침)이 이미 발행됐으면 스킵
+        if is_duplicate_topic(news["title"], published_titles):
+            print(f"  • [DUP] 유사 토픽 이미 발행됨: {news['title'][:40]}")
+            continue
 
         reddit_ctx = fetch_reddit_context(news["title"], subreddits)
         combined_content = f"[NEWS SOURCE: {news['link']}]\n{news['desc']}"
@@ -414,20 +470,26 @@ def fetch_global_trends(subreddits, history):
             combined_content += f"\n\n[COMMUNITY REACTION]\n{reddit_ctx}"
 
         candidates.append({
-            "id": f"news_{hash(news['title']) & 0xFFFFFF:06x}",
+            "id": news_id,
             "subreddit": news["category"],
             "title": news["title"],
             "link": news["link"],
             "content": combined_content[:2000],
+            "desc": news["desc"],
             "source": "news",
             "news_url": news["link"]
         })
 
-    # Reddit 단독 트렌드 추가 (뉴스에 없는 것)
+    # Reddit 단독 트렌드 추가 (뉴스에 없는 것) — 토픽 중복 체크 통과분만
+    reddit_added = 0
     for r in reddit_only[:5]:
+        if is_duplicate_topic(r["title"], published_titles):
+            print(f"  • [DUP] 유사 토픽 이미 발행됨(Reddit): {r['title'][:40]}")
+            continue
         candidates.append(r)
+        reddit_added += 1
 
-    print(f"✨ 총 {len(candidates)}개 후보 확보 (뉴스 {len(news_items)}개 + Reddit {len(reddit_only)}개)")
+    print(f"✨ 총 {len(candidates)}개 후보 확보 (뉴스 {len(candidates) - reddit_added}개 + Reddit {reddit_added}개)")
     return candidates
 
 
@@ -504,38 +566,44 @@ def evaluate_filter_and_summarize_oneshot(candidates):
 
 
 def generate_seo_title(candidate):
-    """RSS/Reddit 원본 제목을 블로그용 SEO 제목으로 재생성합니다. 항상 내용 기반으로 새로 만듭니다."""
-    # [FIX] 원본 제목을 그대로 쓰지 않고 내용 기반으로 항상 재생성
+    """RSS/Reddit 원본 제목을 블로그용 SEO 제목으로 재생성합니다."""
+    original_title = candidate['title']
+    # 뉴스RSS는 desc, Reddit은 content를 컨텍스트로 사용 (500자로 확대)
+    context = candidate.get('desc', '') or candidate.get('content', '')
+    context_snippet = context[:500]
+
     prompt = (
-        f"You are an SEO expert. Rewrite the following news headline into a punchy, engaging blog post title.\n"
+        f"You are a veteran tech/gaming blog editor. Write a great blog post title.\n\n"
+        f"SOURCE HEADLINE: {original_title}\n"
+        f"CONTEXT: {context_snippet}\n\n"
         f"RULES:\n"
         f"- Under 60 characters\n"
-        f"- Must reflect the ACTUAL TOPIC of the article (analysis, opinion, implications) — NOT a shopping guide or 'how to' unless the article is literally that\n"
-        f"- Be bold and opinionated, not neutral\n"
-        f"- No clickbait, no 'You Won't Believe' style\n"
-        f"- Output ONLY the new title, nothing else\n\n"
-        f"Original headline: {candidate['title']}\n"
-        f"Article context: {candidate.get('content', '')[:300]}"
+        f"- Capture the REAL angle (controversy, impact, implication) not just restate the headline\n"
+        f"- Punchy and direct — a human editor would approve\n"
+        f"- Plain text ONLY: no markdown, no asterisks, no quotes wrapping the title\n"
+        f"- Do NOT start with Why/How/What\n"
+        f"- Output the title text ONLY. Nothing else."
     )
     try:
         response = client.models.generate_content(
             model=FLASH_MODEL,
             contents=prompt,
             config=types.GenerateContentConfig(
-                temperature=0.4,
-                max_output_tokens=200  # 제목 생성 여유 확보
+                system_instruction="You are a concise blog title writer. Output only plain title text. No markdown. No surrounding quotes. No explanation.",
+                temperature=0.3,
+                max_output_tokens=80
             )
         )
-        new_title = response.text.strip().strip('"').strip("'")
-        new_title = re.sub(r'[\*\_`#]', '', new_title).strip()  # 마크다운 기호 제거
-        new_title = new_title.replace('"', '').strip()             # 큰따옴표만 제거, 아포스트로피 보존
-        if new_title and len(new_title) <= 70:
+        new_title = response.text.strip()
+        # 마크다운/따옴표 잔재 제거
+        new_title = re.sub(r'[\*\_`#]', '', new_title).strip()
+        new_title = new_title.strip('"').strip("'").strip()
+        if new_title and 5 <= len(new_title) <= 70:
             return new_title
     except Exception:
         pass
     # 폴백: 원본 제목 60자 제한
-    title = candidate['title']
-    return title if len(title) <= 60 else title[:57] + "..."
+    return original_title if len(original_title) <= 60 else original_title[:57] + "..."
 
 
 def generate_seo_post(candidate):
@@ -942,6 +1010,12 @@ if __name__ == "__main__":
 
         # history 업데이트 (UTC 기준)
         history["published_ids"].append(selected_post['id'])
+        # [FIX] 토픽 중복방지용 제목 저장 — 최근 40개만 유지
+        history.setdefault("published_titles", [])
+        history["published_titles"].append(selected_post['title'])
+        history["published_titles"] = history["published_titles"][-40:]
+        # published_ids도 무한 누적 방지 — 최근 200개만 유지
+        history["published_ids"] = history["published_ids"][-200:]
         history["last_category"] = raw_category
         history["last_published_date"] = today
         history["last_published_at"] = now_utc_str
