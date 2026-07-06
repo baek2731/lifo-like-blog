@@ -214,64 +214,194 @@ def clean_reddit_title(title):
     return title
 
 
-def fetch_global_trends(subreddits, history):
-    """지정된 커뮤니티 풀에서 실시간 트렌드 피드를 스캔하고 중복을 제외한 청정 목록을 빌드합니다."""
-    print("🛰️ 글로벌 레딧 커뮤니티 네트워크에서 실시간 이슈 스캔 중...")
+NEWS_RSS_SOURCES = [
+    {"url": "https://feeds.arstechnica.com/arstechnica/index", "category": "tech"},
+    {"url": "https://www.theverge.com/rss/index.xml", "category": "tech"},
+    {"url": "https://techcrunch.com/feed/", "category": "tech"},
+    {"url": "https://feeds.feedburner.com/ign/all", "category": "gaming"},
+    {"url": "https://www.eurogamer.net/feed", "category": "gaming"},
+    {"url": "https://kotaku.com/rss", "category": "gaming"},
+]
+
+
+def fetch_news_rss(history):
+    """공식 뉴스 RSS에서 최신 기사를 수집합니다."""
+    print("📰 뉴스 RSS 스캔 중 (Ars Technica, The Verge, IGN 등)...")
     headers = {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36"
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
     }
-    candidates = []
+    news_items = []
     now_utc = datetime.now(timezone.utc)
 
+    for source in NEWS_RSS_SOURCES:
+        try:
+            response = requests.get(source["url"], headers=headers, timeout=10)
+            if response.status_code != 200:
+                continue
+
+            soup = BeautifulSoup(response.content, "xml")
+            items = soup.find_all("item") or soup.find_all("entry")
+
+            for item in items[:3]:
+                title_tag = item.find("title")
+                title = title_tag.text.strip() if title_tag else ""
+                if not title:
+                    continue
+
+                link_tag = item.find("link")
+                link = ""
+                if link_tag:
+                    link = link_tag.get("href") or link_tag.text.strip()
+
+                pub_tag = item.find("pubDate") or item.find("published") or item.find("updated")
+                if pub_tag:
+                    try:
+                        pub_text = pub_tag.text.strip()
+                        from email.utils import parsedate_to_datetime
+                        try:
+                            pub_time = parsedate_to_datetime(pub_text)
+                        except Exception:
+                            pub_time = datetime.fromisoformat(pub_text.replace("Z", "+00:00"))
+                        hours_old = (now_utc - pub_time).total_seconds() / 3600
+                        if hours_old > 48:
+                            continue
+                    except Exception:
+                        pass
+
+                desc_tag = item.find("description") or item.find("summary") or item.find("content")
+                desc = ""
+                if desc_tag:
+                    desc = re.sub(r'<[^>]*>', '', desc_tag.text).strip()
+
+                news_items.append({
+                    "title": title,
+                    "link": link,
+                    "desc": desc[:500],
+                    "source_url": source["url"],
+                    "category": source["category"]
+                })
+
+        except Exception as e:
+            print(f"⚠️ 뉴스 RSS 로드 실패 ({source['url'][:40]}): {e}")
+            continue
+
+    print(f"  • 뉴스 기사 {len(news_items)}개 수집 완료")
+    return news_items
+
+
+def fetch_reddit_context(title, subreddits):
+    """뉴스 제목과 관련된 Reddit 커뮤니티 반응을 검색합니다."""
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+    }
+    keywords = ' '.join(title.split()[:4])
+    context_parts = []
+
+    for sub in subreddits[:3]:
+        try:
+            search_url = f"https://www.reddit.com/r/{sub}/search.json?q={requests.utils.quote(keywords)}&sort=new&limit=3&restrict_sr=1"
+            response = requests.get(search_url, headers=headers, timeout=8)
+            if response.status_code != 200:
+                continue
+            data = response.json()
+            posts = data.get("data", {}).get("children", [])
+            for post in posts[:2]:
+                p = post.get("data", {})
+                post_title = p.get("title", "")
+                selftext = p.get("selftext", "")[:300]
+                if post_title:
+                    context_parts.append(f"[r/{sub}] {post_title}: {selftext}")
+        except Exception:
+            continue
+
+    return "\n".join(context_parts[:4]) if context_parts else ""
+
+
+def fetch_global_trends(subreddits, history):
+    """뉴스 RSS + Reddit 2단계 구조로 트렌드를 수집합니다."""
+    print("🛰️ 글로벌 트렌드 스캔 시작 (뉴스 RSS + Reddit 2단계)...")
+    now_utc = datetime.now(timezone.utc)
+
+    # 1단계: 뉴스 RSS 수집
+    news_items = fetch_news_rss(history)
+
+    # 2단계: Reddit에서 단독 트렌드도 병행 수집
+    print("🔍 Reddit 커뮤니티 보조 스캔 중...")
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36"
+    }
+    reddit_only = []
     for sub in subreddits:
         url = f"https://www.reddit.com/r/{sub}/.rss"
         try:
             response = requests.get(url, headers=headers, timeout=10)
             if response.status_code != 200:
                 continue
-
             soup = BeautifulSoup(response.content, "xml")
             entries = soup.find_all("entry")
-
             for entry in entries[:5]:
                 link = entry.find("link")["href"] if entry.find("link") else ""
                 id_match = re.search(r'/comments/([a-zA-Z0-9]+)/', link)
                 if not id_match:
                     continue
                 post_id = id_match.group(1)
-
                 if post_id in history["published_ids"]:
                     continue
-
-                # ── 날짜 필터: 48시간 이내 글만 허용 ──
                 updated_tag = entry.find("updated")
                 if updated_tag:
                     try:
                         post_time = datetime.fromisoformat(updated_tag.text.replace("Z", "+00:00"))
                         hours_old = (now_utc - post_time).total_seconds() / 3600
                         if hours_old > 48:
-                            raw_title = entry.find("title").text if entry.find("title") else ""
-                            print(f"  • [SKIP] {hours_old:.0f}시간 전 오래된 글 제외: {raw_title[:40]}...")
                             continue
                     except Exception:
-                        pass  # 날짜 파싱 실패 시 통과 허용
-
+                        pass
                 title = entry.find("title").text if entry.find("title") else "No Title"
-                title = clean_reddit_title(title)  # Reddit 태그 제거
+                title = clean_reddit_title(title)
                 content = entry.find("content").text if entry.find("content") else ""
                 clean_content = re.sub(r'<[^>]*>', '', content).strip()
-
-                candidates.append({
+                reddit_only.append({
                     "id": post_id,
                     "subreddit": sub,
                     "title": title,
                     "link": link,
-                    "content": clean_content[:2000]
+                    "content": clean_content[:2000],
+                    "source": "reddit"
                 })
         except Exception as e:
-            print(f"⚠️ r/{sub} 데이터 로드 중 일시적 지연 발생: {e}")
+            print(f"⚠️ r/{sub} 로드 실패: {e}")
             continue
 
+    # 뉴스 RSS 기사를 candidate 형식으로 변환 + Reddit 컨텍스트 결합
+    candidates = []
+    used_titles = set()
+
+    for news in news_items:
+        title_key = news["title"][:40].lower()
+        if title_key in used_titles:
+            continue
+        used_titles.add(title_key)
+
+        reddit_ctx = fetch_reddit_context(news["title"], subreddits)
+        combined_content = f"[NEWS SOURCE: {news['link']}]\n{news['desc']}"
+        if reddit_ctx:
+            combined_content += f"\n\n[COMMUNITY REACTION]\n{reddit_ctx}"
+
+        candidates.append({
+            "id": f"news_{hash(news['title']) & 0xFFFFFF:06x}",
+            "subreddit": news["category"],
+            "title": news["title"],
+            "link": news["link"],
+            "content": combined_content[:2000],
+            "source": "news",
+            "news_url": news["link"]
+        })
+
+    # Reddit 단독 트렌드 추가 (뉴스에 없는 것)
+    for r in reddit_only[:5]:
+        candidates.append(r)
+
+    print(f"✨ 총 {len(candidates)}개 후보 확보 (뉴스 {len(news_items)}개 + Reddit {len(reddit_only)}개)")
     return candidates
 
 
@@ -403,16 +533,29 @@ def generate_seo_post(candidate):
         "16. FORBIDDEN: Do NOT add any 'Source:' line or attribution at the end of the post.\n"
         "17. IMPORTANT: Present all political and policy topics from a balanced, analytical perspective. "
         "Avoid partisan language or ideological labels. Critique ideas on their merits, not their political alignment.\n"
-        "18. EXTERNAL LINKS — ONLY IF CERTAIN: If you know a real, verified URL to an authoritative source (Reuters, BBC, The Verge, Ars Technica, IGN, TechCrunch, Wired, The Guardian, official company blogs), include 1-3 links using this format: [anchor text](https://real-url.com). CRITICAL: NEVER fabricate or guess a URL. If you are not 100% certain the URL exists and is correct, DO NOT include it. It is far better to mention a source by name without a link than to invent a URL.\n"
-        "19. CRITICAL — NO HALLUCINATION: Do NOT invent, fabricate, or hallucinate ANY specific facts. This includes: product names, game titles, company names, statistics, quotes, event details, or announcements. If the provided context lacks specific details, write in general terms only. NEVER fill gaps with made-up specifics. Every concrete claim must be directly supported by the provided community context.\n"
+        "18. EXTERNAL LINKS — ONLY IF CERTAIN: If you know a real, verified URL to an authoritative source, include 1-3 links using this format: [anchor text](https://real-url.com). CRITICAL: NEVER fabricate or guess a URL. If the news source URL is provided in the context, you MAY use it directly — that URL is real. Otherwise, only link if 100% certain.\n"
+        "19. CRITICAL — NO HALLUCINATION: Do NOT invent, fabricate, or hallucinate ANY specific facts. This includes: product names, game titles, company names, statistics, quotes, event details, or announcements. If the provided context lacks specific details, write in general terms only. NEVER fill gaps with made-up specifics. Every concrete claim must be directly supported by the provided context.\n"
         "20. Output ONLY raw Markdown. No ```markdown blocks. No preamble."
     )
 
-    user_content = (
-        f"Source Community: r/{candidate['subreddit']}\n"
-        f"Original Topic: {candidate['title']}\n"
-        f"Raw community context:\n{candidate['content']}"
-    )
+    source_type = candidate.get("source", "reddit")
+    news_url = candidate.get("news_url", "")
+
+    if source_type == "news" and news_url:
+        user_content = (
+            f"Source: {news_url}\n"
+            f"Headline: {candidate['title']}\n"
+            f"Context (news summary + community reaction):\n{candidate['content']}\n\n"
+            f"Write a deep analysis of this news story as LIFO. "
+            f"The news source URL above is REAL — you may cite it directly as a hyperlink. "
+            f"Use the community reaction section to add authentic reader perspective."
+        )
+    else:
+        user_content = (
+            f"Source Community: r/{candidate['subreddit']}\n"
+            f"Original Topic: {candidate['title']}\n"
+            f"Raw community context:\n{candidate['content']}"
+        )
 
     response = client.models.generate_content(
         model=FLASH_MODEL,
@@ -648,8 +791,6 @@ if __name__ == "__main__":
     today = now_utc.strftime("%Y-%m-%d")
     now_utc_str = now_utc.strftime("%Y-%m-%dT%H:%M:%SZ")
     last_published_date = history.get("last_published_date")
-
-    # ── Threads 토큰 만료 체크 ──
 
     if last_published_date == today:
         msg = f"오늘({today}) 이미 발행 완료. API 중복 호출 방지를 위해 종료합니다."
