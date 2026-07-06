@@ -1,7 +1,11 @@
 {
-    "published_ids": [],
-    "published_titles": [],
-    "last_category": null,
-    "last_published_date": null,
-    "last_published_at": null
+    "published_ids": [
+        "news_https://www.theverge.com/news/961546/xbox-layoffs-studio-sales-2026"
+    ],
+    "published_titles": [
+        "Microsoft is selling off four Xbox studios as part of significant gaming cuts"
+    ],
+    "last_category": "gaming",
+    "last_published_date": "2026-07-06",
+    "last_published_at": "2026-07-06T14:19:36Z"
 }
