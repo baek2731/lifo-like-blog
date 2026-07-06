@@ -1,8 +1,9 @@
 {
     "published_ids": [
-        "news_8b0e66"
+        "news_8b0e66",
+        "news_09cb23"
     ],
-    "last_category": null,
-    "last_published_date": null,
-    "last_published_at": null
+    "last_category": "gaming",
+    "last_published_date": "2026-07-06",
+    "last_published_at": "2026-07-06T11:24:37Z"
 }
