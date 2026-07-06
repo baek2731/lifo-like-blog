@@ -527,6 +527,7 @@ def generate_seo_title(candidate):
             )
         )
         new_title = response.text.strip().strip('"').strip("'")
+        new_title = re.sub(r'[\*\_`#]', '', new_title).strip()
         if new_title and len(new_title) <= 70:
             return new_title
     except Exception:
@@ -683,6 +684,12 @@ def deploy_to_github(candidate, seo_content):
 
     # [FIX] SEO 제목을 배포 전에 미리 생성 (파일명 + front matter 모두에 사용)
     seo_title = generate_seo_title(candidate)
+    # [FIX] 마크다운 볼드/이탤릭 기호, 따옴표, 콜론 등 front matter 파괴 문자 제거
+    seo_title = re.sub(r'[\*\_`#]', '', seo_title)       # **, __, `, # 제거
+    seo_title = re.sub(r'["\']', '', seo_title)           # 따옴표 제거
+    seo_title = re.sub(r'\s+', ' ', seo_title).strip()    # 연속 공백 정리
+    if not seo_title or len(seo_title) < 5:               # 제목이 날아갔으면 원본 사용
+        seo_title = re.sub(r'[\*\_`#"\']', '', candidate['title'])[:60]
     print(f"📝 생성된 SEO 제목: {seo_title}")
 
     # 핵심 키워드 추출 및 Unsplash 이미지 검색
