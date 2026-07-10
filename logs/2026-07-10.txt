@@ -1,1 +1,2 @@
 [2026-07-10T16:18:55Z] [INFO] 봇 시작 — 마지막 발행: 2026-07-09 / 카테고리: tech
+[2026-07-10T16:20:26Z] [SUCCESS] 발행 완료 — 제목: As Xbox and PlayStation flounder, Steam is reporte / 카테고리: gaming / URL: https://blog.lifo-like.com/gaming/steams-unstoppable-rise-amid-console-woes/
