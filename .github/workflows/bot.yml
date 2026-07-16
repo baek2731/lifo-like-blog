@@ -1,15 +1,10 @@
 name: Auto Blog Bot
-
 on:
-  schedule:
-    # 매일 한국시간 오후 11시 = UTC 14:00
-    - cron: '0 14 * * *'
-  workflow_dispatch: # 수동 실행도 가능
+  workflow_dispatch: # 수동 실행만 가능 (자동 실행 중단)
 
 jobs:
   run-bot:
     runs-on: ubuntu-latest
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
